@@ -2,18 +2,18 @@
   "name": "npm-outdated",
   "displayName": "npm Outdated",
   "description": "Displays a message in package.json files for packages with newer versions available.",
-  "version": "0.0.0-semantically-released",
-  "publisher": "mskelton",
-  "author": "Mark Skelton",
+  "version": "3.0.0",
+  "publisher": "rentalhost",
+  "author": "David Rodrigues",
   "l10n": "./locales",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mskelton/vscode-npm-outdated.git"
+    "url": "https://github.com/rentalhost/vscode-npm-outdated.git"
   },
   "bugs": {
-    "url": "https://github.com/mskelton/vscode-npm-outdated/issues"
+    "url": "https://github.com/rentalhost/vscode-npm-outdated/issues"
   },
-  "homepage": "https://github.com/mskelton/vscode-npm-outdated#readme",
+  "homepage": "https://github.com/rentalhost/vscode-npm-outdated#readme",
   "license": "ISC",
   "keywords": [
     "npm",
@@ -44,24 +44,19 @@
   ],
   "main": "./out/extension.js",
   "devDependencies": {
-    "@mskelton/eslint-config": "^8.0.0",
+    "@rheactor/eslint-config-rheactor": "github:rheactor/eslint-config-rheactor",
     "@swc/cli": "^0.1.62",
-    "@swc/core": "^1.3.69",
+    "@swc/core": "^1.3.71",
     "@types/jest": "^29.5.3",
-    "@types/node": "^20.4.2",
+    "@types/node": "^20.4.5",
     "@types/vscode": "^1.80.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "esbuild": "^0.18.12",
-    "eslint": "^8.44.0",
-    "eslint-plugin-jest": "^27.2.2",
-    "eslint-plugin-promise": "^6.1.1",
+    "esbuild": "^0.18.16",
+    "eslint": "^8.45.0",
     "jest": "^29.6.1",
     "prettier": "^3.0.0",
     "semantic-release-vsce": "^5.6.0",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.1.6",
-    "eslint-plugin-sort": "^2.10.0"
+    "typescript": "^5.1.6"
   },
   "dependencies": {
     "semver": "^7.5.4"

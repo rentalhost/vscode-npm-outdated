@@ -1,11 +1,10 @@
-# VS Code npm Outdated
+# npm-outdated (and pnpm) for vscode
 
-[![build](https://github.com/mskelton/vscode-npm-outdated/actions/workflows/build.yml/badge.svg)](https://github.com/mskelton/vscode-npm-outdated/actions/workflows/build.yml)
-[![Semantic release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
+[![build](https://github.com/rentalhost/vscode-npm-outdated/actions/workflows/build.yml/badge.svg)](https://github.com/rentalhost/vscode-npm-outdated/actions/workflows/build.yml)
 
 Displays a diagnostic message in package.json files for packages which have newer versions available as well as a code action to quickly update packages to their latest version.
 
-![Screenshot](https://github.com/mskelton/vscode-npm-outdated/blob/main/images/screenshot.jpg)
+![Screenshot](https://github.com/rentalhost/vscode-npm-outdated/blob/main/images/screenshot.jpg)
 
 ## Usage
 

@@ -840,9 +840,9 @@ describe("security advisories", () => {
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: {
         dependencies: {
-          "npm-outdated-1": "mskelton/vscode-npm-outdated",
-          "npm-outdated-2": "mskelton/vscode-npm-outdated#1234567890",
-          "npm-outdated-3": "mskelton/vscode-npm-outdated#feature/branch",
+          "npm-outdated-1": "rentalhost/vscode-npm-outdated",
+          "npm-outdated-2": "rentalhost/vscode-npm-outdated#1234567890",
+          "npm-outdated-3": "rentalhost/vscode-npm-outdated#feature/branch",
         },
       },
     })

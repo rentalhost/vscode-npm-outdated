@@ -5,7 +5,7 @@
 Run the following commands to clone the repository for this extension and install all necessary dependencies.
 
 ```bash
-git clone git@github.com:mskelton/vscode-npm-outdated.git
+git clone git@github.com:rentalhost/vscode-npm-outdated.git
 cd vscode-npm-outdated
 npm install
 ```
