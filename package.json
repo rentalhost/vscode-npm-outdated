@@ -2,7 +2,7 @@
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated plus",
   "description": "Displays a message in package.json files for packages with newer versions available. Supports npm and pnpm.",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "publisher": "rentalhost",
   "author": "David Rodrigues",
   "l10n": "./locales",

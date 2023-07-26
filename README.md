@@ -4,7 +4,7 @@
 
 Displays a diagnostic message in package.json files for packages which have newer versions available as well as a code action to quickly update packages to their latest version.
 
-![Screenshot](https://github.com/rentalhost/vscode-npm-outdated/blob/main/images/screenshot.jpg)
+![Screenshot](/images/screenshot.jpg)
 
 ## Usage
 
