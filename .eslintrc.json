@@ -1,0 +1,14 @@
+{
+  "extends": ["@rheactor/eslint-config-rheactor/all-node"],
+
+  "overrides": [
+    {
+      "files": "**/*.ts",
+      "rules": { "unicorn/filename-case": ["error", { "case": "pascalCase" }] }
+    },
+    {
+      "files": ["src/extension.ts", "src/*.test.ts", "src/__mocks__/vscode.ts"],
+      "rules": { "unicorn/filename-case": "off" }
+    }
+  ]
+}

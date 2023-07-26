@@ -1,23 +1,24 @@
 import { prerelease } from "semver"
 import {
-  DecorationOptions,
+  type DecorationOptions,
   l10n,
   Range,
-  TextDocument,
-  TextEditor,
-  TextEditorDecorationType,
-  ThemableDecorationAttachmentRenderOptions,
+  type TextDocument,
+  type TextEditor,
+  type TextEditorDecorationType,
+  type ThemableDecorationAttachmentRenderOptions,
   window,
 } from "vscode"
-import { PackageRelatedDiagnostic } from "./Diagnostic"
-import { PackageInfo } from "./PackageInfo"
-import { PackageAdvisory } from "./PackageManager"
+
+import { type PackageRelatedDiagnostic } from "./Diagnostic"
+import { type PackageInfo } from "./PackageInfo"
+import { type PackageAdvisory } from "./PackageManager"
 import { getDecorationsMode } from "./Settings"
 import { Icons, Margins, ThemeDark, ThemeLight } from "./Theme"
 import { lazyCallback } from "./Utils"
 
 class Message {
-  constructor(
+  public constructor(
     public message: string,
     public styleDefault?: ThemableDecorationAttachmentRenderOptions,
     public styleDark?: ThemableDecorationAttachmentRenderOptions,
@@ -38,28 +39,12 @@ const decorationTypes = new Map<number, TextEditorDecorationType>([
 // Each layer must have its own style implementation, so that the message order is respected.
 // @see https://github.com/microsoft/vscode/issues/169051
 export class DocumentDecorationManager {
-  private static documents = new WeakMap<
+  private static readonly documents = new WeakMap<
     TextDocument,
     DocumentDecorationManager
   >()
 
   public layers = new Map<number, DocumentDecorationLayer>()
-
-  public getLayer(position: number): DocumentDecorationLayer {
-    if (!this.layers.has(position)) {
-      this.layers.set(position, new DocumentDecorationLayer(position))
-    }
-
-    return this.layers.get(position)!
-  }
-
-  flushLayers(): void {
-    this.layers.forEach((layer) => layer.lines.clear())
-  }
-
-  flushLine(line: number): void {
-    this.layers.forEach((layer) => layer.lines.delete(line))
-  }
 
   // Returns the decoration layers of a document.
   // If the document has never been used, then instantiate and return.
@@ -75,15 +60,38 @@ export class DocumentDecorationManager {
 
   // When the document is closed, then it unloads the layers defined for it.
   public static flushDocument(document: TextDocument): void {
-    DocumentDecorationManager.fromDocument(document).layers.forEach((layer) => {
-      window.visibleTextEditors.forEach((editor) => {
+    const documentLayers =
+      DocumentDecorationManager.fromDocument(document).layers
+
+    for (const layer of documentLayers.values()) {
+      for (const editor of window.visibleTextEditors) {
         if (editor.document === document) {
           editor.setDecorations(layer.type, [])
         }
-      })
-    })
+      }
+    }
 
     this.documents.delete(document)
+  }
+
+  public getLayer(position: number): DocumentDecorationLayer {
+    if (!this.layers.has(position)) {
+      this.layers.set(position, new DocumentDecorationLayer(position))
+    }
+
+    return this.layers.get(position)!
+  }
+
+  public flushLayers(): void {
+    for (const layer of this.layers.values()) {
+      layer.lines.clear()
+    }
+  }
+
+  public flushLine(line: number): void {
+    for (const layer of this.layers.values()) {
+      layer.lines.delete(line)
+    }
   }
 }
 
@@ -92,95 +100,46 @@ class DocumentDecorationLayer {
 
   public type: TextEditorDecorationType
 
-  constructor(position: number) {
+  public constructor(position: number) {
     this.type = decorationTypes.get(position)!
   }
 }
 
 export class DocumentDecoration {
-  private editors: TextEditor[]
+  private readonly editors: TextEditor[]
 
   private flushed = false
 
-  private render = lazyCallback(() => {
-    DocumentDecorationManager.fromDocument(this.document).layers.forEach(
-      (layer) => {
-        this.editors.forEach((editor) =>
-          editor.setDecorations(layer.type, [...layer.lines.values()]),
-        )
-      },
-    )
-  }, 100)
+  private readonly render
 
-  constructor(private document: TextDocument) {
+  public constructor(private readonly document: TextDocument) {
+    this.render = lazyCallback(() => {
+      const documentLayers = DocumentDecorationManager.fromDocument(
+        this.document,
+      ).layers.values()
+
+      for (const layer of documentLayers) {
+        for (const editor of this.editors) {
+          editor.setDecorations(layer.type, [...layer.lines.values()])
+        }
+      }
+    }, 100)
+
     this.editors = window.visibleTextEditors.filter(
       (editor) => editor.document === document,
     )
   }
 
-  private setLine(line: number, messages: Message[]): void {
-    const decorationManager = DocumentDecorationManager.fromDocument(
-      this.document,
-    )
-
-    if (!this.flushed) {
-      this.flushed = true
-      decorationManager.flushLayers()
-    } else {
-      decorationManager.flushLine(line)
-    }
-
-    if (getDecorationsMode() === "simple") {
-      const decorationLayer = decorationManager.getLayer(0)
-
-      decorationLayer.lines.set(line, {
-        range: new Range(line, 4096, line, 4096),
-        renderOptions: {
-          after: {
-            contentText: messages.map((message) => message.message).join(" "),
-            ...ThemeLight.DEFAULT,
-            ...Margins.MARGIN_INITIAL,
-          },
-          dark: {
-            after: { ...ThemeDark.DEFAULT },
-          },
-        },
-      })
-    } else {
-      messages.forEach((message, messageIndex) => {
-        const decorationLayer = decorationManager.getLayer(messageIndex)
-
-        decorationLayer.lines.set(line, {
-          range: new Range(line, 4096, line, 4096),
-          renderOptions: {
-            after: {
-              contentText: message.message,
-              ...ThemeLight.DEFAULT,
-              ...(messageIndex === 0
-                ? Margins.MARGIN_INITIAL
-                : Margins.MARGIN_THEN),
-              ...message.styleDefault,
-            },
-            dark: {
-              after: {
-                ...ThemeDark.DEFAULT,
-                ...message.styleDark,
-              },
-            },
-          },
-        })
-      })
-    }
-
-    this.render()
-  }
-
   public clearLine(line: number): void {
-    DocumentDecorationManager.fromDocument(this.document).layers.forEach(
-      (decoration) => decoration.lines.delete(line),
-    )
+    const documentLayers = DocumentDecorationManager.fromDocument(
+      this.document,
+    ).layers.values()
 
-    this.render()
+    for (const decoration of documentLayers) {
+      decoration.lines.delete(line)
+    }
+
+    void this.render()
   }
 
   public setCheckedMessage(line: number): void {
@@ -207,7 +166,7 @@ export class DocumentDecoration {
       await packageInfo.packageRelated.getVersionInstalled()
 
     if (await packageInfo.packageRelated.requiresInstallCommand()) {
-      return this.setLine(line, [
+      this.setLine(line, [
         new Message(
           Icons.PENDING,
           ThemeLight.ICON_AVAILABLE,
@@ -215,6 +174,8 @@ export class DocumentDecoration {
         ),
         new Message(l10n.t("Now run your package manager install command.")),
       ])
+
+      return
     }
 
     const updateDetails = [
@@ -224,9 +185,9 @@ export class DocumentDecoration {
         ThemeDark.ICON_UPDATABLE,
       ),
       new Message(
-        packageVersionInstalled
-          ? l10n.t("Update available:")
-          : l10n.t("Latest version:"),
+        packageVersionInstalled === undefined
+          ? l10n.t("Latest version:")
+          : l10n.t("Update available:"),
         ThemeLight.LABEL_UPDATABLE,
         ThemeDark.LABEL_UPDATABLE,
       ),
@@ -237,7 +198,7 @@ export class DocumentDecoration {
       ),
     ]
 
-    if (!packageVersionInstalled) {
+    if (packageVersionInstalled === undefined) {
       // If the package has not yet been installed by the user, but defined in the dependencies.
       updateDetails.push(
         new Message(
@@ -285,10 +246,10 @@ export class DocumentDecoration {
     this.setLine(line, updateDetails)
   }
 
-  public async setAdvisoryMessage(
+  public setAdvisoryMessage(
     packageInfo: PackageInfo,
     packageAdvisory: PackageAdvisory,
-  ): Promise<void> {
+  ): void {
     this.setLine(packageInfo.getLine(), [
       new Message(
         Icons.ADVISORY,
@@ -308,5 +269,62 @@ export class DocumentDecoration {
         ThemeDark.LABEL_ADVISORY_TITLE,
       ),
     ])
+  }
+
+  private setLine(line: number, messages: Message[]): void {
+    const decorationManager = DocumentDecorationManager.fromDocument(
+      this.document,
+    )
+
+    if (this.flushed) {
+      decorationManager.flushLine(line)
+    } else {
+      this.flushed = true
+      decorationManager.flushLayers()
+    }
+
+    if (getDecorationsMode() === "simple") {
+      const decorationLayer = decorationManager.getLayer(0)
+
+      decorationLayer.lines.set(line, {
+        range: new Range(line, 4096, line, 4096),
+        renderOptions: {
+          after: {
+            contentText: messages.map((message) => message.message).join(" "),
+            ...ThemeLight.DEFAULT,
+            ...Margins.MARGIN_INITIAL,
+          },
+          dark: {
+            after: { ...ThemeDark.DEFAULT },
+          },
+        },
+      })
+    } else {
+      for (const [messageIndex, message] of messages.entries()) {
+        const decorationLayer = decorationManager.getLayer(messageIndex)
+
+        decorationLayer.lines.set(line, {
+          range: new Range(line, 4096, line, 4096),
+          renderOptions: {
+            after: {
+              contentText: message.message,
+              ...ThemeLight.DEFAULT,
+              ...(messageIndex === 0
+                ? Margins.MARGIN_INITIAL
+                : Margins.MARGIN_THEN),
+              ...message.styleDefault,
+            },
+            dark: {
+              after: {
+                ...ThemeDark.DEFAULT,
+                ...message.styleDark,
+              },
+            },
+          },
+        })
+      }
+    }
+
+    void this.render()
   }
 }

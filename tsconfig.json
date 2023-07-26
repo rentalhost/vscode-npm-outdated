@@ -13,5 +13,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true
-  }
+  },
+  "include": ["jest.config.js", "src/**/*.ts"],
+  "exclude": ["node_modules"]
 }

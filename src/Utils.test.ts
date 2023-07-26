@@ -13,11 +13,13 @@ describe("utils", () => {
     const now = Date.now()
 
     // Must run immediately:
-    lazy(() => {
+    void lazy(() => {
       expect(Date.now() - now).toBeLessThan(25 * TIMER_MULTIPLIER)
     })
 
-    await new Promise((resolve) => setTimeout(resolve, 50 * TIMER_MULTIPLIER))
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50 * TIMER_MULTIPLIER)
+    })
   })
 
   it("lazy callback: avoid first call", async () => {
@@ -30,14 +32,18 @@ describe("utils", () => {
     const now = Date.now()
 
     // Must run be ignored:
-    lazy(() => expect.assertions(0))
+    void lazy(() => {
+      expect.assertions(0)
+    })
 
     // Must run after 25ms:
-    lazy(() => {
+    void lazy(() => {
       expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER)
     })
 
-    await new Promise((resolve) => setTimeout(resolve, 50 * TIMER_MULTIPLIER))
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50 * TIMER_MULTIPLIER)
+    })
   })
 
   it("lazy callback: wait first call", async () => {
@@ -50,11 +56,13 @@ describe("utils", () => {
     const now = Date.now()
 
     // Must run after 25ms:
-    lazy(() => {
+    void lazy(() => {
       expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER)
     })
 
-    await new Promise((resolve) => setTimeout(resolve, 50 * TIMER_MULTIPLIER))
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50 * TIMER_MULTIPLIER)
+    })
   })
 
   it("lazy callback: avoid second call", async () => {
@@ -71,22 +79,26 @@ describe("utils", () => {
     const now = Date.now()
 
     // Must run immediately:
-    lazy(() => expect(Date.now() - now).toBeLessThan(25 * TIMER_MULTIPLIER))
+    void lazy(() => {
+      expect(Date.now() - now).toBeLessThan(25 * TIMER_MULTIPLIER)
+    })
 
     // Must be skipped: too fast call.
-    lazy(() => {
+    void lazy(() => {
       expect.assertions(0)
     })
 
     // Must run after 25ms:
-    lazy(() => {
+    void lazy(() => {
       const nowDiff = Date.now() - now
 
       expect(nowDiff).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER)
       expect(nowDiff).toBeLessThan(50 * TIMER_MULTIPLIER)
     })
 
-    await new Promise((resolve) => setTimeout(resolve, 50 * TIMER_MULTIPLIER))
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50 * TIMER_MULTIPLIER)
+    })
   })
 
   it("promise limit: prevent multiple simultaneous processes", async () => {
@@ -94,17 +106,19 @@ describe("utils", () => {
 
     const processesLimit = promiseLimit(2)
 
-    const delay = (): Promise<unknown> =>
-      new Promise((resolve) => setTimeout(resolve, 25 * TIMER_MULTIPLIER))
+    const delay = async (): Promise<unknown> =>
+      new Promise((resolve) => {
+        setTimeout(resolve, 25 * TIMER_MULTIPLIER)
+      })
 
     const now = Date.now()
 
     // The first two promises will execute immediately and wait 25ms to complete.
     // The third promise will wait another 25ms.
     await Promise.all([
-      processesLimit(() => delay()),
-      processesLimit(() => delay()),
-      processesLimit(() => delay()),
+      processesLimit(async () => delay()),
+      processesLimit(async () => delay()),
+      processesLimit(async () => delay()),
     ])
 
     // The total time should be 50ms.
@@ -116,16 +130,18 @@ describe("utils", () => {
 
     const processesLimit = promiseLimit(0)
 
-    const delay = (): Promise<unknown> =>
-      new Promise((resolve) => setTimeout(resolve, 25 * TIMER_MULTIPLIER))
+    const delay = async (): Promise<unknown> =>
+      new Promise((resolve) => {
+        setTimeout(resolve, 25 * TIMER_MULTIPLIER)
+      })
 
     const now = Date.now()
 
     // All promises must run immediately.
     await Promise.all([
-      processesLimit(() => delay()),
-      processesLimit(() => delay()),
-      processesLimit(() => delay()),
+      processesLimit(async () => delay()),
+      processesLimit(async () => delay()),
+      processesLimit(async () => delay()),
     ])
 
     // The total time should be lower than 50ms.
@@ -156,7 +172,7 @@ describe("utils", () => {
     })
 
     expect(fetchSuccess).toBeInstanceOf(Object)
-  })
+  }, 5000)
 
   it("fetchLite: access to a private NPM Registry without auth token", async () => {
     expect.assertions(1)

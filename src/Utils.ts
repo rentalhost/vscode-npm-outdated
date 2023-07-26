@@ -1,46 +1,49 @@
-import url = require("node:url")
-import https = require("node:https")
-import zlib = require("node:zlib")
-
-import { IncomingMessage } from "node:http"
+import { type IncomingMessage } from "node:http"
+import { request } from "node:https"
+import { gunzip, gzipSync } from "node:zlib"
 
 // This function allows to call a "lazy" callback.
 // The first execution can be delayed when the "wait" parameter is different from zero, otherwise it will be immediate.
 // The next execution can be delayed as long as "delay" is non - zero, with a minimum time of zero ms.
 // Furthermore, if several executions happen at the same time, only the last one will be actually be executed.
 export const lazyCallback = <T, A>(
-  callback: (...args: A[]) => T,
+  callback: (...arguments_: A[]) => Promise<T> | T,
   wait = 0,
   delay = 0,
-): ((...args: A[]) => Promise<void>) => {
+): ((...arguments_: A[]) => Promise<void>) => {
   // Defines whether there is a process currently running.
   let isRunning = false
 
   // It only stores the arguments for the next run, since the callback will be the same.
   // It is important to remember that the arguments will be discarded if a new execution is requested,
   // so we always prioritize the last execution and discard anything before it, with the exception of the current process.
-  let argsNext: A[] | undefined = undefined
+  let argumentsNext: A[] | undefined = undefined
 
   // Here's the magic: a "activator" is returned, instead of the original callback.
   // It manages when the current execution ends and when the next one starts, if it exists.
-  const activate = async (...args: A[]): Promise<void> => {
-    if (!isRunning) {
+  const activate = async (...arguments_: A[]): Promise<void> => {
+    if (isRunning) {
+      // If there is already a process running, we only store the arguments for the next run.
+      argumentsNext = arguments_
+    } else {
       // If no callback is running right now, then run the current one immediately.
       isRunning = true
 
+      // eslint-disable-next-line unicorn/prefer-ternary
       if (wait === 0) {
-        await callback(...args)
+        await callback(...arguments_)
       } else {
         await new Promise<void>((resolve) => {
           setTimeout(async () => {
             // Must execute the callback with the most recent arguments, if any.
-            if (argsNext) {
-              const argsNextCopied = argsNext
-              argsNext = undefined
+            if (argumentsNext) {
+              const argumentsNextCopied = argumentsNext
 
-              await callback(...argsNextCopied)
+              argumentsNext = undefined
+
+              await callback(...argumentsNextCopied)
             } else {
-              await callback(...args)
+              await callback(...arguments_)
             }
 
             resolve()
@@ -54,14 +57,11 @@ export const lazyCallback = <T, A>(
         // After the execution ends, it releases for another process to run.
         isRunning = false
 
-        if (argsNext !== undefined) {
-          activate(...argsNext)
-          argsNext = undefined
+        if (argumentsNext !== undefined) {
+          void activate(...argumentsNext)
+          argumentsNext = undefined
         }
       }, delay)
-    } else {
-      // If there is already a process running, we only store the arguments for the next run.
-      argsNext = args
     }
   }
 
@@ -70,11 +70,11 @@ export const lazyCallback = <T, A>(
 
 // This function checks if a promise can be processed as long as the conditional callback returns true.
 // @see https://stackoverflow.com/a/64947598/755393
-export const waitUntil = (
-  condition: () => Promise<boolean>,
+export const waitUntil = async (
+  condition: () => Promise<boolean> | boolean,
   retryDelay = 0,
-): Promise<void> => {
-  return new Promise((resolve) => {
+): Promise<void> =>
+  new Promise((resolve) => {
     const interval = setInterval(async () => {
       if (!(await condition())) {
         return
@@ -84,36 +84,35 @@ export const waitUntil = (
       resolve()
     }, retryDelay)
   })
-}
 
-type OptionalPromise<T> = T | Promise<T>
+type OptionalPromise<T> = Promise<T> | T
 
 // This function lets you control how many promises can be worked on concurrently.
 // As soon as one promise ends, another one can be processed.
 // If the concurrency number is zero then they will be processed immediately.
 export const promiseLimit = (
   concurrency: number,
-): (<T>(func: () => T) => OptionalPromise<T>) => {
+): (<T>(function_: () => T) => OptionalPromise<T>) => {
   // If concurrency is zero, all promises are executed immediately.
   if (concurrency === 0) {
-    return <T>(func: () => T): T => {
-      return func()
-    }
+    return <T>(function_: () => T): T => function_()
   }
 
   let inProgress = 0
 
-  return async <T>(func: () => T): Promise<T> => {
+  return async <T>(callback: () => Promise<T> | T): Promise<T> => {
     // Otherwise, it will be necessary to wait until there is a "vacancy" in the concurrency process for the promise to be executed.
-    await waitUntil(() => Promise.resolve(inProgress < concurrency))
+    await waitUntil(() => inProgress < concurrency)
 
     // As soon as this "vacancy" is made available, the function is executed.
     // Note that the execution of the function "takes a seat" during the process.
     inProgress++
-    const funcResult = await func()
+
+    const functionResult = await callback()
+
     inProgress--
 
-    return funcResult
+    return functionResult
   }
 }
 
@@ -128,46 +127,65 @@ interface FetchLite {
 
 // A simple post request.
 // Based on https://github.com/vasanthv/fetch-lite/blob/master/index.js
-export const fetchLite = <T>(options: FetchLite): Promise<T | undefined> => {
-  return new Promise<T | undefined>((resolve) => {
-    const { hostname, path } = url.parse(options.url)
+export const fetchLite = async <T>(options: FetchLite) =>
+  new Promise<T | undefined>((resolve) => {
+    let url
+
+    try {
+      url = new URL(options.url)
+    } catch {
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      resolve(undefined)
+
+      return
+    }
+
+    const { href } = url
     const headers = { "content-type": "application/json" }
 
-    const thisReq = https.request(
-      { headers, hostname, method: options.method ?? "get", path },
+    const thisRequest = request(
+      href,
+      { headers, method: options.method ?? "get" },
       (response: IncomingMessage) => {
         const responseBuffers: Buffer[] = []
 
         response.on("data", (data: Buffer) => responseBuffers.push(data))
+
         // istanbul ignore next
-        response.on("error", () => resolve(undefined))
+        response.on("error", () => {
+          // eslint-disable-next-line unicorn/no-useless-undefined
+          resolve(undefined)
+        })
+
         response.on("end", () => {
-          if (!response.headers["content-encoding"]) {
-            return resolve(JSON.parse(responseBuffers.toString()))
+          if (response.headers["content-encoding"] === undefined) {
+            resolve(JSON.parse(responseBuffers.toString()) as T)
+
+            return
           }
 
-          return zlib.gunzip(
-            Buffer.concat(responseBuffers),
-            (_error, contents) => {
-              resolve(JSON.parse(contents.toString()))
-            },
-          )
+          gunzip(Buffer.concat(responseBuffers), (_error, contents) => {
+            resolve(JSON.parse(contents.toString()) as T)
+          })
         })
       },
     )
 
-    thisReq.setHeader("Content-Type", "application/json")
-    thisReq.setHeader("Content-Encoding", "gzip")
-    thisReq.setHeader("Accept-Encoding", "gzip")
+    thisRequest.setHeader("Content-Type", "application/json")
+    thisRequest.setHeader("Content-Encoding", "gzip")
+    thisRequest.setHeader("Accept-Encoding", "gzip")
 
     if (options.body !== undefined) {
-      const bodyStringify = zlib.gzipSync(JSON.stringify(options.body))
+      const bodyStringify = gzipSync(JSON.stringify(options.body))
 
-      thisReq.setHeader("Content-Length", bodyStringify.length)
-      thisReq.write(bodyStringify)
+      thisRequest.setHeader("Content-Length", bodyStringify.length)
+      thisRequest.write(bodyStringify)
     }
 
-    thisReq.on("error", () => resolve(undefined))
-    thisReq.end()
+    thisRequest.on("error", () => {
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      resolve(undefined)
+    })
+
+    thisRequest.end()
   })
-}

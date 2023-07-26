@@ -1,8 +1,9 @@
 export class Range {
   public start: { character: number; line: number }
+
   public end: { character: number; line: number }
 
-  constructor(
+  public constructor(
     startLine: number,
     startCharacter: number,
     endLine: number,
@@ -20,7 +21,7 @@ export const ExtensionContext = jest.fn(() => ({
 }))
 
 export class Diagnostic {
-  constructor(
+  public constructor(
     public range: typeof Range,
     public message: string,
     public severity?: DiagnosticSeverity,
@@ -45,7 +46,7 @@ export const languages = {
 }
 
 export const window = {
-  createTextEditorDecorationType: (): symbol => Symbol(),
+  createTextEditorDecorationType: (): symbol => Symbol(""),
 }
 
 export const Uri = {
@@ -59,16 +60,19 @@ export const WorkspaceEdit = jest.fn(() => ({
 }))
 
 export class CodeAction {
-  constructor(public title: string) {}
+  public constructor(public title: string) {}
 }
 
 export const l10n = {
-  t: (message: string, ...args: unknown[]): string => {
+  t: (message: string, ...arguments_: unknown[]): string => {
     let messageModified = message
 
-    args.forEach((arg, argIndex) => {
-      messageModified = messageModified.replaceAll(`{${argIndex}}`, String(arg))
-    })
+    for (const [argumentIndex, argument] of arguments_.entries()) {
+      messageModified = messageModified.replaceAll(
+        `{${argumentIndex}}`,
+        String(argument),
+      )
+    }
 
     return messageModified
   },

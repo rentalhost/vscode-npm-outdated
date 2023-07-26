@@ -1,13 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable import/no-namespace */
 import * as ChildProcess from "node:child_process"
 import * as FS from "node:fs"
 import { sep } from "node:path"
-import { ReleaseType } from "semver"
+
+import { type ReleaseType } from "semver"
 import * as vscode from "vscode"
 import { Range } from "vscode"
+
 import { PackageJsonCodeActionProvider } from "./CodeAction"
 import { DocumentDecorationManager } from "./DocumentDecoration"
 import { activate } from "./extension"
-import { PackageAdvisory, PackageManager } from "./PackageManager"
+import { type PackageAdvisory, PackageManager } from "./PackageManager"
 import { name as packageName } from "./plugin.json"
 import * as Utils from "./Utils"
 
@@ -19,13 +24,14 @@ jest.mock("./Utils", () => ({
 
   promiseLimit:
     () =>
-    <T extends () => void>(callback: T): unknown =>
+    // eslint-disable-next-line unicorn/consistent-function-scoping
+    <T extends () => unknown>(callback: T): unknown =>
       callback(),
 
-  waitUntil: (callback: () => void): Promise<true> => {
+  waitUntil: (callback: () => void): true => {
     callback()
 
-    return Promise.resolve(true)
+    return true
   },
 }))
 
@@ -59,7 +65,7 @@ interface SimulatorOptions {
 
   execError?: boolean
 
-  packageJson?: "" | PackageJson
+  packageJson?: PackageJson | ""
 
   packageManager?: PackageManager
 
@@ -96,6 +102,7 @@ const FSMock = FS as {
 }
 
 const UtilsMock = Utils as {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   cacheEnabled: typeof import("./Utils").cacheEnabled
 
   fetchLite: unknown
@@ -103,15 +110,15 @@ const UtilsMock = Utils as {
 
 const dependenciesAsChildren = (
   dependencies: Record<string, string>,
-): vscode.DocumentSymbol[] => {
-  return Object.entries(dependencies).map(([name, version], entryIndex) => {
-    return {
-      detail: version,
-      name,
-      range: new Range(entryIndex, 0, entryIndex, 0) as unknown as Range,
-    } as vscode.DocumentSymbol
-  })
-}
+): vscode.DocumentSymbol[] =>
+  Object.entries(dependencies).map(
+    ([name, version], entryIndex) =>
+      ({
+        detail: version,
+        name,
+        range: new Range(entryIndex, 0, entryIndex, 0) as unknown as Range,
+      }) as vscode.DocumentSymbol,
+  )
 
 type ExecCallback = (error: string | null, stdout: string | null) => void
 
@@ -122,10 +129,11 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
   let diagnostics: vscode.Diagnostic[] = []
   let decorations: string[][] = []
 
-  const windowsInformation: [string, string[]][] = []
+  const windowsInformation: Array<[string, string[]]> = []
 
-  const subscriptions: [string, (...args: ExplicitAny[]) => void][] = []
-  const commands: [string, (...args: ExplicitAny[]) => void][] = []
+  const subscriptions: Array<[string, (...arguments_: ExplicitAny[]) => void]> =
+    []
+  const commands: Array<[string, (...arguments_: ExplicitAny[]) => void]> = []
 
   const packageManager = options.packageManager ?? PackageManager.NPM
 
@@ -145,18 +153,19 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
     setDecorations: (): void => {
       decorations = []
 
-      Array.from(
-        DocumentDecorationManager.fromDocument(document).layers.values(),
-      ).forEach((layer) => {
-        layer.lines.forEach((line) => {
+      const documentLayers =
+        DocumentDecorationManager.fromDocument(document).layers.values()
+
+      for (const layer of documentLayers) {
+        for (const line of layer.lines.values()) {
           const lineIndex = line.range.start.line
 
           decorations[lineIndex] ??= []
           decorations[lineIndex]!.push(
             String(line.renderOptions?.after?.contentText),
           )
-        })
-      })
+        }
+      }
     },
   }
 
@@ -176,15 +185,15 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
     }
 
     if (options.packagesRepository) {
-      for (const packageName of Object.keys(options.packagesRepository)) {
+      for (const name of Object.keys(options.packagesRepository)) {
         if (
-          url.endsWith(`/${packageName}`) &&
-          packageName in options.packagesRepository &&
-          !packageName.startsWith("@private/")
+          url.endsWith(`/${name}`) &&
+          name in options.packagesRepository &&
+          !name.startsWith("@private/")
         ) {
           return Promise.resolve({
             versions: Object.fromEntries(
-              options.packagesRepository[packageName]?.map((version) => [
+              options.packagesRepository[name]?.map((version) => [
                 version,
                 null,
               ]) as [],
@@ -194,7 +203,7 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
       }
     }
 
-    return Promise.resolve(undefined)
+    return Promise.resolve()
   }
 
   ChildProcessMock.exec = (
@@ -209,7 +218,7 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
       options.packagesInstalled &&
       packageManager === PackageManager.NPM
     ) {
-      return callbackReal(
+      callbackReal(
         null,
         JSON.stringify({
           dependencies: Object.fromEntries(
@@ -220,6 +229,8 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
           ),
         }),
       )
+
+      return
     }
 
     if (
@@ -227,7 +238,7 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
       options.packagesInstalled &&
       packageManager === PackageManager.PNPM
     ) {
-      return callbackReal(
+      callbackReal(
         null,
         JSON.stringify([
           {
@@ -239,17 +250,23 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
           },
         ]),
       )
+
+      return
     }
 
     if (command === "npm --version" && packageManager === PackageManager.NPM) {
-      return callbackReal(null, "1.0.0\n")
+      callbackReal(null, "1.0.0\n")
+
+      return
     }
 
     if (
       command === "pnpm --version" &&
       packageManager === PackageManager.PNPM
     ) {
-      return callbackReal(null, "1.0.0\n")
+      callbackReal(null, "1.0.0\n")
+
+      return
     }
 
     if (typeof callbackReal === "function") {
@@ -266,14 +283,20 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
     }
 
     return {
-      on: (_data: ExplicitAny, callback: () => void) => callback(),
+      on: (_data: ExplicitAny, callbackInner: () => void) => {
+        callbackInner()
+      },
       stderr: {
-        on: (_data: ExplicitAny, callback: (message: string) => void) =>
-          options.execError ? callback("test") : null,
+        on: (_data: ExplicitAny, callbackInner: (message: string) => void) => {
+          if (options.execError === true) {
+            callbackInner("test")
+          }
+        },
       },
       stdout: {
-        on: (_data: ExplicitAny, callback: (message: string) => void) =>
-          callback("test"),
+        on: (_data: ExplicitAny, callbackInner: (message: string) => void) => {
+          callbackInner("test")
+        },
       },
     }
   }
@@ -284,7 +307,7 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
     if (command === "vscode.executeDocumentSymbolProvider") {
       const symbols = []
 
-      if (!options.packageJson) {
+      if (options.packageJson === undefined || options.packageJson === "") {
         return undefined
       }
 
@@ -314,7 +337,7 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
 
   vscodeMock.commands.registerCommand = (
     name: string,
-    callback: (...args: ExplicitAny[]) => void,
+    callback: (...arguments_: ExplicitAny[]) => void,
   ): number => commands.push([name, callback])
 
   vscodeMock.window.activeTextEditor = editor
@@ -324,15 +347,16 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
     handle: () => void,
   ): number => subscriptions.push(["onDidChangeActiveTextEditor", handle])
 
-  vscodeMock.window.showInformationMessage =
-    vscodeMock.window.showErrorMessage = (
-      message: string,
-      ...items: string[]
-    ): string | undefined => {
-      windowsInformation.push([message, items])
+  vscodeMock.window.showErrorMessage = (
+    message: string,
+    ...items: string[]
+  ): string | undefined => {
+    windowsInformation.push([message, items])
 
-      return items[0]
-    }
+    return items[0]
+  }
+
+  vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage
 
   vscodeMock.window.createOutputChannel = jest.fn(() => ({
     append: jest.fn(),
@@ -376,7 +400,7 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
   vscodeMock.languages.getDiagnostics = (): vscode.Diagnostic[] => diagnostics
 
   vscodeMock.Range = class extends vscode.Range {
-    public intersection(_range: Range): Range | undefined {
+    public intersection(): Range | undefined {
       return options.selectFirsts !== undefined &&
         this.end.line + 1 <= options.selectFirsts
         ? this
@@ -388,14 +412,14 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
 
   activate(context as unknown as vscode.ExtensionContext)
 
-  if (options.triggerChangeAfter) {
+  if (options.triggerChangeAfter === true) {
     subscriptions.find(
       (subscription) => subscription[0] === "onDidChangeTextDocument",
     )?.[1]({ document })
   }
 
   if (options.selectFirsts !== undefined) {
-    await new Promise(process.nextTick)
+    await new Promise(process.nextTick.bind(null))
 
     actions = await new PackageJsonCodeActionProvider().provideCodeActions(
       document,
@@ -404,14 +428,14 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
 
     if (options.runAction !== undefined) {
       const command = commands.find(
-        (command) => command[0] === options.runAction?.name,
+        (commandInner) => commandInner[0] === options.runAction?.name,
       )
 
-      command?.[1].apply(this, options.runAction.args!)
+      command?.[1].apply(undefined, options.runAction.args!)
     }
   }
 
-  await new Promise(process.nextTick)
+  await new Promise(process.nextTick.bind(null))
 
   return {
     actions,

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 // eslint-disable-next-line jest/no-untyped-mock-factory
 jest.mock("node:child_process", () => ({
   __esModule: true,
@@ -11,6 +12,7 @@ jest.mock("node:fs", () => ({
 }))
 
 import { DiagnosticSeverity } from "vscode"
+
 import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "./Command"
 import { PackageManager } from "./PackageManager"
 import { vscodeSimulator } from "./TestUtils"
@@ -18,6 +20,8 @@ import { Icons } from "./Theme"
 
 describe("package diagnostics", () => {
   it("initialization without a package.json", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator()
 
     expect(diagnostics).toHaveLength(0)
@@ -25,6 +29,8 @@ describe("package diagnostics", () => {
   })
 
   it("initialization without an empty package.json", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: "",
     })
@@ -34,6 +40,8 @@ describe("package diagnostics", () => {
   })
 
   it("initialization with package.json without dependencies", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: {},
     })
@@ -43,6 +51,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, pending installation", async () => {
+    expect.assertions(5)
+
     const { actions, decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesRepository: { "npm-outdated": ["1.0.0"] },
@@ -59,6 +69,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, already installed, just formalization", async () => {
+    expect.assertions(3)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.1" },
@@ -71,6 +83,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer version available", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -82,6 +96,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer version available, avoid major dump", async () => {
+    expect.assertions(3)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -94,6 +110,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer version available, suggesting major dump", async () => {
+    expect.assertions(3)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -106,6 +124,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer version available, major dump protection disabled", async () => {
+    expect.assertions(3)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       configurations: { majorUpdateProtection: false },
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
@@ -119,6 +139,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer version available (using cache)", async () => {
+    expect.assertions(4)
+
     const { decorations: decorations1, diagnostics: diagnostics1 } =
       await vscodeSimulator({
         packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
@@ -142,6 +164,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dev dependency, newer version available", async () => {
+    expect.assertions(3)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { devDependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -154,6 +178,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, package version not available", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesRepository: { "npm-outdated": ["1.0.0"] },
@@ -164,6 +190,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, latest pre-release", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1-alpha" } },
       packagesInstalled: { "npm-outdated": "1.0.1-alpha" },
@@ -175,6 +203,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer pre-release available", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1-alpha" } },
       packagesInstalled: { "npm-outdated": "1.0.1-alpha" },
@@ -188,6 +218,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, newer stable-after pre-release available", async () => {
+    expect.assertions(3)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1-alpha" } },
       packagesInstalled: { "npm-outdated": "1.0.1-alpha" },
@@ -202,6 +234,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, upgrading to major pre-release", async () => {
+    expect.assertions(3)
+
     const { decorations } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^2.0.0-alpha" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -216,6 +250,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, latest available version", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesInstalled: { "npm-outdated": "1.0.1" },
@@ -227,6 +263,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, with partial version", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "1" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -238,6 +276,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, suggests minor or greater only", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       configurations: { level: "minor" },
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
@@ -250,6 +290,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, but cannot get latest version (exception case)", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesInstalled: { "npm-outdated": "1.0.1" },
@@ -260,6 +302,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, no diagnostic", async () => {
+    expect.assertions(1)
+
     const { diagnostics } = await vscodeSimulator({
       configurations: { level: "major" },
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
@@ -271,6 +315,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, waiting for run your package manager install", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -286,6 +332,8 @@ describe("package diagnostics", () => {
   })
 
   it("valid dependency, with major already installed must not show 'major' tooltip", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "2.0.0" },
@@ -297,6 +345,8 @@ describe("package diagnostics", () => {
   })
 
   it("dependency name is invalid", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "invalid!": "^1.0.0" } },
     })
@@ -306,6 +356,8 @@ describe("package diagnostics", () => {
   })
 
   it("dependency version is complex", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0 || ^2.0.0" } },
     })
@@ -315,6 +367,8 @@ describe("package diagnostics", () => {
   })
 
   it("dependency version is invalid", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^a.b.c" } },
     })
@@ -324,6 +378,8 @@ describe("package diagnostics", () => {
   })
 
   it("dependency version is incomplete/empty", async () => {
+    expect.assertions(1)
+
     const { decorations } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "" } },
       packagesRepository: { "npm-outdated": ["1.0.0"] },
@@ -333,6 +389,8 @@ describe("package diagnostics", () => {
   })
 
   it("decorations simple", async () => {
+    expect.assertions(1)
+
     const { decorations } = await vscodeSimulator({
       configurations: { decorations: "simple" },
       packageJson: { devDependencies: { "npm-outdated": "^1.0.0" } },
@@ -346,6 +404,8 @@ describe("package diagnostics", () => {
   })
 
   it("decorations disabled", async () => {
+    expect.assertions(1)
+
     const { decorations } = await vscodeSimulator({
       configurations: { decorations: "disabled" },
       packageJson: { devDependencies: { "npm-outdated": "^1.0.0" } },
@@ -357,6 +417,8 @@ describe("package diagnostics", () => {
   })
 
   it("package dependes on auth, so npm view will be used (found)", async () => {
+    expect.assertions(2)
+
     const { diagnostics } = await vscodeSimulator({
       packageJson: { devDependencies: { "@private/npm-outdated": "^1.0.0" } },
       packagesInstalled: { "@private/npm-outdated": "1.0.0" },
@@ -368,6 +430,8 @@ describe("package diagnostics", () => {
   })
 
   it("package dependes on auth, so npm view will be used (not found)", async () => {
+    expect.assertions(1)
+
     const { diagnostics } = await vscodeSimulator({
       packageJson: { devDependencies: { "@private/jest": "^1.0.0" } },
       packagesInstalled: { "@private/jest": "1.0.0" },
@@ -380,6 +444,8 @@ describe("package diagnostics", () => {
 
 describe("code actions", () => {
   it("no package selected", async () => {
+    expect.assertions(1)
+
     const { actions } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesInstalled: { "npm-outdated": "1.0.1" },
@@ -391,6 +457,8 @@ describe("code actions", () => {
   })
 
   it("no package selected, must not have any action", async () => {
+    expect.assertions(1)
+
     const { actions } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.1" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -402,6 +470,8 @@ describe("code actions", () => {
   })
 
   it("selected a specific package, ready to install", async () => {
+    expect.assertions(3)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -426,6 +496,8 @@ describe("code actions", () => {
   })
 
   it("selected two packages, ready to install", async () => {
+    expect.assertions(2)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -449,6 +521,8 @@ describe("code actions", () => {
   })
 
   it("selected a specific package", async () => {
+    expect.assertions(2)
+
     const { actions } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -461,6 +535,8 @@ describe("code actions", () => {
   })
 
   it("selected first package only", async () => {
+    expect.assertions(3)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -485,6 +561,8 @@ describe("code actions", () => {
   })
 
   it("selected first package only, both major updates", async () => {
+    expect.assertions(3)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -509,6 +587,8 @@ describe("code actions", () => {
   })
 
   it("selected first package only, both major updates (protection disabled)", async () => {
+    expect.assertions(3)
+
     const { actions } = await vscodeSimulator({
       configurations: {
         majorUpdateProtection: false,
@@ -536,6 +616,8 @@ describe("code actions", () => {
   })
 
   it("selected all two packages, with waiting for install another", async () => {
+    expect.assertions(3)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -563,6 +645,8 @@ describe("code actions", () => {
   })
 
   it("selected all two packages, but one is major update (protection enabled)", async () => {
+    expect.assertions(2)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -586,6 +670,8 @@ describe("code actions", () => {
   })
 
   it("selected all two packages, but one is major update (protection disabled)", async () => {
+    expect.assertions(2)
+
     const { actions } = await vscodeSimulator({
       configurations: {
         majorUpdateProtection: false,
@@ -612,6 +698,8 @@ describe("code actions", () => {
   })
 
   it("selected all two packages, both are major update", async () => {
+    expect.assertions(2)
+
     const { actions } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -637,6 +725,8 @@ describe("code actions", () => {
 
 describe("commands", () => {
   it("notify install", async () => {
+    expect.assertions(1)
+
     const { actions } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -652,6 +742,8 @@ describe("commands", () => {
   })
 
   it("install success", async () => {
+    expect.assertions(1)
+
     const { actions } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -667,6 +759,8 @@ describe("commands", () => {
   })
 
   it("install failure", async () => {
+    expect.assertions(1)
+
     const { actions } = await vscodeSimulator({
       execError: true,
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
@@ -685,6 +779,8 @@ describe("commands", () => {
 
 describe("code coverage", () => {
   it("simulate change active text editor", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics, document, subscriptions } =
       await vscodeSimulator()
 
@@ -697,6 +793,8 @@ describe("code coverage", () => {
   })
 
   it("simulate change text document", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       triggerChangeAfter: true,
     })
@@ -706,6 +804,8 @@ describe("code coverage", () => {
   })
 
   it("simulate packages-lock.json or pnpm-lock.yaml change", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics, subscriptions } = await vscodeSimulator()
 
     subscriptions.find(
@@ -717,6 +817,8 @@ describe("code coverage", () => {
   })
 
   it("simulate close text document", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics, document, subscriptions } =
       await vscodeSimulator({
         packageJson: { dependencies: { "npm-outdated": "^a.b.c" } },
@@ -731,6 +833,8 @@ describe("code coverage", () => {
   })
 
   it("decoration re-flush layers", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
       packagesInstalled: { "npm-outdated": "1.0.0" },
@@ -745,6 +849,8 @@ describe("code coverage", () => {
 
 describe("security advisories", () => {
   it("updatable", async () => {
+    expect.assertions(4)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       cacheEnabled: true,
       packageJson: {
@@ -760,7 +866,7 @@ describe("security advisories", () => {
             severity: "high",
             title: "flaw",
             url: "https://testing",
-            vulnerable_versions: "1.0.0",
+            [`vulnerable_versions`]: "1.0.0",
           },
         ],
       },
@@ -775,6 +881,8 @@ describe("security advisories", () => {
   })
 
   it("needs downgrade", async () => {
+    expect.assertions(4)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -789,7 +897,7 @@ describe("security advisories", () => {
             severity: "high",
             title: "flaw",
             url: "https://testing",
-            vulnerable_versions: "1.0.1",
+            [`vulnerable_versions`]: "1.0.1",
           },
         ],
       },
@@ -804,6 +912,8 @@ describe("security advisories", () => {
   })
 
   it("ignore directory-versions", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -820,6 +930,8 @@ describe("security advisories", () => {
   })
 
   it("ignore protocol versions", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -837,6 +949,8 @@ describe("security advisories", () => {
   })
 
   it("ignore github packages", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: {
         dependencies: {
@@ -852,6 +966,8 @@ describe("security advisories", () => {
   })
 
   it("detect installed modules: none", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { jest: "^1.0.1" } },
       packageManager: PackageManager.NONE,
@@ -863,6 +979,8 @@ describe("security advisories", () => {
   })
 
   it("detect installed modules: npm", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { jest: "^1.0.1" } },
       packagesInstalled: { jest: "1.0.1" },
@@ -874,6 +992,8 @@ describe("security advisories", () => {
   })
 
   it("detect installed modules: pnpm", async () => {
+    expect.assertions(2)
+
     const { decorations, diagnostics } = await vscodeSimulator({
       packageJson: { dependencies: { jest: "^1.0.1" } },
       packageManager: PackageManager.PNPM,

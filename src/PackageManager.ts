@@ -1,10 +1,12 @@
 import { exec } from "node:child_process"
 import { existsSync } from "node:fs"
 import { dirname } from "node:path"
+
 import { prerelease } from "semver"
-import { TextDocument } from "vscode"
+import { type TextDocument } from "vscode"
+
 import { Cache } from "./Cache"
-import { PackageInfo } from "./PackageInfo"
+import { type PackageInfo } from "./PackageInfo"
 import { getCacheLifetime } from "./Settings"
 import { cacheEnabled, fetchLite } from "./Utils"
 
@@ -34,7 +36,7 @@ export const getPackageVersions = async (
   if (cacheEnabled()) {
     const cachePackages = packagesCache.get(name)
 
-    if (cachePackages?.isValid(getCacheLifetime())) {
+    if (cachePackages?.isValid(getCacheLifetime()) === true) {
       return cachePackages.value
     }
   }
@@ -42,30 +44,32 @@ export const getPackageVersions = async (
   // We'll use Registry NPM to get the versions directly from the source.
   // This avoids loading processes via `npm view`.
   // The process is cached if it is triggered quickly, within lifetime.
-  const execPromise = new Promise<string[] | null>((resolve) =>
-    fetchLite<NPMRegistryPackage>({
-      url: `https://registry.npmjs.org/${name}`,
-    }).then((data) => {
-      if (data?.versions) {
-        return resolve(Object.keys(data.versions))
-      }
+  const execPromise = fetchLite<NPMRegistryPackage>({
+    url: `https://registry.npmjs.org/${name}`,
+  }).then(async (data): Promise<string[] | null> => {
+    if (data?.versions) {
+      return Object.keys(data.versions)
+    }
 
-      // Uses `npm view` as a fallback.
-      // This usually happens when the package needs authentication.
-      // In this case, we'll let `npm` handle it directly.
-      return exec(`npm view --json ${name} versions`, (error, stdout) => {
+    // Uses `npm view` as a fallback.
+    // This usually happens when the package needs authentication.
+    // In this case, we'll let `npm` handle it directly.
+    return new Promise((resolve) => {
+      exec(`npm view --json ${name} versions`, (error, stdout) => {
         if (!error) {
           try {
-            return resolve(JSON.parse(stdout))
-          } catch (e) {
+            resolve(JSON.parse(stdout) as string[] | null)
+
+            return
+          } catch {
             /* empty */
           }
         }
 
-        return resolve(null)
+        resolve(null)
       })
-    }),
-  )
+    })
+  })
 
   packagesCache.set(name, new Cache(execPromise))
 
@@ -88,14 +92,15 @@ const packageManagerExecCache = new Cache<Record<string, boolean>>({})
 const supportsPackageManager = async (
   document: TextDocument,
   cmd: "npm" | "pnpm",
-): Promise<boolean> => {
-  return new Promise((resolve) => {
+): Promise<boolean> =>
+  new Promise((resolve) => {
     if (
       cacheEnabled() &&
       packageManagerExecCache.isValid(getCacheLifetime()) &&
       cmd in packageManagerExecCache.value
     ) {
       resolve(packageManagerExecCache.value[cmd]!)
+
       return
     }
 
@@ -110,7 +115,6 @@ const supportsPackageManager = async (
       resolve(isInstalled)
     })
   })
-}
 
 export const packageManagerCaches = new Map<
   string,
@@ -127,10 +131,10 @@ export const getPackageManager = async (
     const packageManagerCache = packageManagerCaches.get(cwd)
 
     if (
-      packageManagerCache?.value &&
+      packageManagerCache?.value !== undefined &&
       packageManagerCache.isValid(getCacheLifetime())
     ) {
-      return packageManagerCache.value!
+      return packageManagerCache.value
     }
   }
 
@@ -168,18 +172,18 @@ const getPackagesInstalledEntries = (
   packages: NPMListResponse,
 ): PackagesInstalled | null => {
   const dependencies: NPMDependencies = {
-    ...(packages.dependencies ?? {}),
-    ...(packages.devDependencies ?? {}),
+    ...packages.dependencies,
+    ...packages.devDependencies,
   }
 
-  if (Object.keys(dependencies).length) {
+  if (Object.keys(dependencies).length > 0) {
     // The `npm ls` command returns a lot of information.
     // We only need the name of the installed package and its version.
     const packageEntries = Object.entries(dependencies).map(
       ([packageName, packageInfo]) => [packageName, packageInfo.version],
     )
 
-    return Object.fromEntries(packageEntries)
+    return Object.fromEntries(packageEntries) as PackagesInstalled
   }
 
   return null
@@ -199,7 +203,7 @@ export const getPackagesInstalled = async (
   if (cacheEnabled()) {
     const cache = packagesInstalledCaches.get(cwd)
 
-    if (cache?.isValid(60 * 60 * 1000)) {
+    if (cache?.isValid(60 * 60 * 1000) === true) {
       return cache.value
     }
   }
@@ -208,7 +212,7 @@ export const getPackagesInstalled = async (
 
   const execPromise = new Promise<PackagesInstalled | undefined>((resolve) => {
     if (packageManager === PackageManager.PNPM) {
-      return exec("pnpm ls --json --depth=0", { cwd }, (_error, stdout) => {
+      exec("pnpm ls --json --depth=0", { cwd }, (_error, stdout) => {
         if (stdout) {
           try {
             const execResult = JSON.parse(stdout) as [NPMListResponse]
@@ -219,34 +223,42 @@ export const getPackagesInstalled = async (
               )
 
               if (packagesInstalled !== null) {
-                return resolve(packagesInstalled)
+                resolve(packagesInstalled)
+
+                return
               }
             }
-          } catch (e) {
+          } catch {
             /* empty */
           }
         }
 
-        return resolve(undefined)
+        // eslint-disable-next-line unicorn/no-useless-undefined
+        resolve(undefined)
       })
+
+      return
     }
 
-    return exec("npm ls --json --depth=0", { cwd }, (_error, stdout) => {
+    exec("npm ls --json --depth=0", { cwd }, (_error, stdout) => {
       if (stdout) {
         try {
           const packagesInstalled = getPackagesInstalledEntries(
-            JSON.parse(stdout),
+            JSON.parse(stdout) as NPMListResponse,
           )
 
           if (packagesInstalled !== null) {
-            return resolve(packagesInstalled)
+            resolve(packagesInstalled)
+
+            return
           }
-        } catch (e) {
+        } catch {
           /* empty */
         }
       }
 
-      return resolve(undefined)
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      resolve(undefined)
     })
   })
 
@@ -282,13 +294,14 @@ export const getPackagesAdvisories = async (
         packageInfo.isVersionComplex() ||
         packagesAdvisoriesCache
           .get(packageInfo.name)
-          ?.isValid(getCacheLifetime())
+          ?.isValid(getCacheLifetime()) === true
       ) {
         continue
       }
 
       // We need to push all versions to the NPM Registry.
       // Thus, we can check in real time when the package version is modified by the user.
+      // eslint-disable-next-line no-await-in-loop
       const packageVersions = await getPackageVersions(packageInfo.name)
 
       // Add to be requested.
@@ -300,7 +313,7 @@ export const getPackagesAdvisories = async (
     }
   }
 
-  if (Object.keys(packages).length) {
+  if (Object.keys(packages).length > 0) {
     // Query advisories through the NPM Registry.
     const responseAdvisories = await fetchLite<PackagesAdvisories | undefined>({
       body: packages,
@@ -310,25 +323,26 @@ export const getPackagesAdvisories = async (
 
     // Fills the packages with their respective advisories.
     if (responseAdvisories) {
-      Object.entries(responseAdvisories).forEach(
-        ([packageName, packageAdvisories]) =>
-          packagesAdvisoriesCache.set(
-            packageName,
-            new Cache(packageAdvisories as PackageAdvisory[]),
-          ),
-      )
+      for (const [packageName, packageAdvisories] of Object.entries(
+        responseAdvisories,
+      )) {
+        packagesAdvisoriesCache.set(
+          packageName,
+          new Cache(packageAdvisories as PackageAdvisory[]),
+        )
+      }
     }
 
     // Autocomplete packages without any advisories.
-    Object.keys(packages).forEach((packageName) => {
+    for (const packageName of Object.keys(packages)) {
       if (!packagesAdvisoriesCache.has(packageName)) {
         packagesAdvisoriesCache.set(packageName, new Cache([]))
       }
-    })
+    }
   }
 
   return new Map(
-    Array.from(packagesAdvisoriesCache.entries()).map(
+    [...packagesAdvisoriesCache.entries()].map(
       ([packageName, packageAdvisory]) => [packageName, packageAdvisory.value],
     ),
   )

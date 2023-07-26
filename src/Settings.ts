@@ -1,5 +1,6 @@
-import { ReleaseType } from "semver"
+import { type ReleaseType } from "semver"
 import { workspace } from "vscode"
+
 import { name as packageName } from "./plugin.json"
 
 // Minimum semver bump required for a package to display as outdated.

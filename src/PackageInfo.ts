@@ -5,16 +5,16 @@ import {
   gte,
   maxSatisfying,
   prerelease,
-  ReleaseType,
+  type ReleaseType,
   valid,
   validRange,
 } from "semver"
-import { Range, TextDocument } from "vscode"
+import { type Range, type TextDocument } from "vscode"
+
 import { getPackagesInstalled, getPackageVersions } from "./PackageManager"
 import { getLevel, hasMajorUpdateProtection } from "./Settings"
 
-const PACKAGE_NAME_REGEXP =
-  /^(?:@[a-z0-9-][a-z0-9-._]*\/)?[a-z0-9-][a-z0-9-._]*$/
+const PACKAGE_NAME_REGEXP = /^(?:@[a-z\d-][a-z\d\-._]*\/)?[a-z\d-][a-z\d\-._]*$/
 
 const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/
 
@@ -22,7 +22,7 @@ const PACKAGE_VERSION_PATH_REGEXP = /^(?:\.\.?|~)?\//
 
 const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/
 
-const PACKAGE_VERSION_GITHUB_REGEX = /^[a-zA-Z0-9][\w-]*[a-zA-Z0-9]\//
+const PACKAGE_VERSION_GITHUB_REGEX = /^[a-zA-Z\d][\w-]*[a-zA-Z\d]\//
 
 const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
   major: 2,
@@ -36,7 +36,7 @@ const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
 
 // The package info, based on user-document.
 export class PackageInfo {
-  constructor(
+  public constructor(
     public document: TextDocument,
     public name: string,
     public range: Range,
@@ -98,8 +98,8 @@ export class PackageInfo {
     const versionInstalled = await this.getVersionInstalled()
 
     return Boolean(
-      versionLatest &&
-        versionInstalled &&
+      versionLatest !== null &&
+        versionInstalled !== undefined &&
         diff(versionLatest, versionInstalled) === "major" &&
         gte(versionLatest, versionInstalled),
     )
@@ -132,7 +132,7 @@ export class PackageInfo {
     const versionLatest = (await this.getVersionLatest())!
     const versionNormalized = this.getVersionNormalized()
 
-    if (!versionNormalized) {
+    if (versionNormalized === undefined) {
       return true
     }
 
@@ -170,7 +170,7 @@ export class PackageInfo {
   public getVersionNormalized(): string | undefined {
     const version = this.getVersionClear()
 
-    if (!valid(version)) {
+    if (valid(version) === null) {
       return coerce(version)?.version
     }
 
@@ -204,10 +204,13 @@ export class PackageInfo {
     if (isPrerelease) {
       const versionNonPrerelease = maxSatisfying(
         packageVersions,
-        `^${coerce(versionClean)}`,
+        `^${coerce(versionClean)!.raw}`,
       )
 
-      if (versionNonPrerelease && gt(versionNonPrerelease, versionClean)) {
+      if (
+        versionNonPrerelease !== null &&
+        gt(versionNonPrerelease, versionClean)
+      ) {
         return versionNonPrerelease
       }
     }
@@ -223,7 +226,7 @@ export class PackageInfo {
     // If the user-defined version is exactly the same version available within the range given by the user,
     // we may suggest the latest version, which may include a major bump.
     // Eg. { "package": "^5.1.3" } and latest is also "5.1.3".
-    if (!versionSatisfying || versionClean === versionSatisfying) {
+    if (versionSatisfying === null || versionClean === versionSatisfying) {
       return versionLatest
     }
 

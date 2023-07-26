@@ -1,11 +1,12 @@
 import {
   CodeActionKind,
   commands,
-  ExtensionContext,
+  type ExtensionContext,
   languages,
-  TextDocument,
+  type TextDocument,
   window,
 } from "vscode"
+
 import { PackageJsonCodeActionProvider } from "./CodeAction"
 import {
   COMMAND_INSTALL,
@@ -16,6 +17,7 @@ import {
 import { diagnosticSubscribe, generatePackagesDiagnostics } from "./Diagnostic"
 import { lazyCallback } from "./Utils"
 
+// eslint-disable-next-line func-style
 export function activate(context: ExtensionContext): void {
   const diagnostics = languages.createDiagnosticCollection()
 

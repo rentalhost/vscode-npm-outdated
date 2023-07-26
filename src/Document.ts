@@ -1,4 +1,5 @@
-import { commands, DocumentSymbol, Range, TextDocument } from "vscode"
+import { commands, type DocumentSymbol, Range, type TextDocument } from "vscode"
+
 import { PackageInfo } from "./PackageInfo"
 import { waitUntil } from "./Utils"
 
@@ -49,14 +50,14 @@ export const getDocumentPackages = async (
   const symbolDependencies = symbols?.find(
       (symbol) => symbol.name === "dependencies",
     ),
-    symbolDevDependencies = symbols?.find(
+    symbolDevelopmentDependencies = symbols?.find(
       (symbol) => symbol.name === "devDependencies",
     )
 
   return Object.fromEntries(
     [
       ...mapDependencyRange(document, symbolDependencies),
-      ...mapDependencyRange(document, symbolDevDependencies),
+      ...mapDependencyRange(document, symbolDevelopmentDependencies),
     ].map((documentPackage) => [documentPackage.name, documentPackage]),
   )
 }

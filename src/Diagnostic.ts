@@ -1,4 +1,5 @@
 import { dirname, sep } from "node:path"
+
 import {
   intersects,
   maxSatisfying,
@@ -8,18 +9,19 @@ import {
 } from "semver"
 import {
   Diagnostic,
-  DiagnosticCollection,
+  type DiagnosticCollection,
   DiagnosticSeverity,
-  ExtensionContext,
+  type ExtensionContext,
   l10n,
-  Range,
-  TextDocument,
-  TextDocumentChangeEvent,
-  TextEditor,
+  type Range,
+  type TextDocument,
+  type TextDocumentChangeEvent,
+  type TextEditor,
   Uri,
   window,
   workspace,
 } from "vscode"
+
 import { DIAGNOSTIC_ACTION } from "./CodeAction"
 import { getDocumentPackages } from "./Document"
 import {
@@ -27,13 +29,13 @@ import {
   DocumentDecorationManager,
 } from "./DocumentDecoration"
 import { DocumentDiagnostics } from "./DocumentDiagnostics"
-import { PackageInfo } from "./PackageInfo"
+import { type PackageInfo } from "./PackageInfo"
 import {
   getPackageManager,
   getPackagesAdvisories,
   PackageManager,
   packageManagerCaches,
-  PackagesAdvisories,
+  type PackagesAdvisories,
   packagesInstalledCaches,
 } from "./PackageManager"
 import { name as packageName } from "./plugin.json"
@@ -65,22 +67,6 @@ export const diagnosticSubscribe = (
     handleChange(window.activeTextEditor.document)
   }
 
-  // Trigger when the active editor changes.
-  context.subscriptions.push(
-    window.onDidChangeActiveTextEditor((editor: TextEditor | undefined) => {
-      if (editor) {
-        handleChange(editor.document)
-      }
-    }),
-  )
-
-  // Trigger when the active document text is modified.
-  context.subscriptions.push(
-    workspace.onDidChangeTextDocument((editor: TextDocumentChangeEvent) =>
-      handleChange(editor.document),
-    ),
-  )
-
   // Trigger when any file in the workspace is modified.
   // Our interest here is to know about the package.json itself, package-lock.json or pnpm-lock.yaml.
   const lockerUpdated = (uri: Uri): void => {
@@ -89,27 +75,41 @@ export const diagnosticSubscribe = (
     packageManagerCaches.get(workspacePath)?.invalidate()
     packagesInstalledCaches.get(workspacePath)?.invalidate()
 
-    window.visibleTextEditors.forEach((editor) => handleChange(editor.document))
+    for (const editor of window.visibleTextEditors) {
+      handleChange(editor.document)
+    }
   }
 
   const lockerWatcher = workspace.createFileSystemWatcher(
     "**/{package.json,package-lock.json,pnpm-lock.yaml}",
   )
 
-  context.subscriptions.push(lockerWatcher.onDidCreate(lockerUpdated))
-  context.subscriptions.push(lockerWatcher.onDidChange(lockerUpdated))
-  context.subscriptions.push(lockerWatcher.onDidDelete(lockerUpdated))
-
   const nodeModulesWatcher = workspace.createFileSystemWatcher(
     "**/node_modules/**/*",
   )
 
-  context.subscriptions.push(nodeModulesWatcher.onDidCreate(lockerUpdated))
-  context.subscriptions.push(nodeModulesWatcher.onDidChange(lockerUpdated))
-  context.subscriptions.push(nodeModulesWatcher.onDidDelete(lockerUpdated))
-
-  // Trigger when the active document is closed, removing the current document from the diagnostic collection.
   context.subscriptions.push(
+    // Trigger when the active editor changes.
+    window.onDidChangeActiveTextEditor((editor: TextEditor | undefined) => {
+      if (editor) {
+        handleChange(editor.document)
+      }
+    }),
+
+    // Trigger when the active document text is modified.
+    workspace.onDidChangeTextDocument((editor: TextDocumentChangeEvent) => {
+      handleChange(editor.document)
+    }),
+
+    lockerWatcher.onDidCreate(lockerUpdated),
+    lockerWatcher.onDidChange(lockerUpdated),
+    lockerWatcher.onDidDelete(lockerUpdated),
+
+    nodeModulesWatcher.onDidCreate(lockerUpdated),
+    nodeModulesWatcher.onDidChange(lockerUpdated),
+    nodeModulesWatcher.onDidDelete(lockerUpdated),
+
+    // Trigger when the active document is closed, removing the current document from the diagnostic collection.
     workspace.onDidCloseTextDocument((document: TextDocument) => {
       if (isPackageJsonDocument(document)) {
         diagnostics.delete(document.uri)
@@ -126,7 +126,7 @@ export enum DiagnosticType {
 }
 
 export class PackageRelatedDiagnostic extends Diagnostic {
-  constructor(
+  public constructor(
     range: Range,
     message: string,
     severity: DiagnosticSeverity,
@@ -140,7 +140,7 @@ export class PackageRelatedDiagnostic extends Diagnostic {
   }
 
   public static is(
-    diagnostic: PackageRelatedDiagnostic | Diagnostic,
+    diagnostic: Diagnostic | PackageRelatedDiagnostic,
   ): diagnostic is PackageRelatedDiagnostic {
     return "packageRelated" in diagnostic
   }
@@ -149,7 +149,7 @@ export class PackageRelatedDiagnostic extends Diagnostic {
 export const getPackageDiagnostic = async (
   document: TextDocument,
   packageInfo: PackageInfo,
-): Promise<PackageRelatedDiagnostic | Diagnostic | undefined> => {
+): Promise<Diagnostic | PackageRelatedDiagnostic | undefined> => {
   if (!packageInfo.isVersionValidRange()) {
     return new Diagnostic(
       packageInfo.versionRange,
@@ -162,8 +162,8 @@ export const getPackageDiagnostic = async (
 
   // When no latest version is found, we just ignore it.
   // In practice, this is an exception-of-the-exception, and is expected to never happen.
-  if (!versionLatest) {
-    return
+  if (versionLatest === null) {
+    return undefined
   }
 
   if (!(await packageInfo.isVersionReleased())) {
@@ -194,7 +194,7 @@ export const getPackageDiagnostic = async (
       )
     }
 
-    return
+    return undefined
   }
 
   if (!(await packageInfo.isVersionMaxed())) {
@@ -222,7 +222,7 @@ export const getPackageDiagnostic = async (
   }
 
   // istanbul ignore next
-  return
+  return undefined
 }
 
 // Analyzes the document dependencies and returns the diagnostics.
@@ -239,9 +239,9 @@ export const generatePackagesDiagnostics = async (
   const packagesInfos = Object.values(await getDocumentPackages(document))
 
   const documentDecorations =
-    getDecorationsMode() !== "disabled"
-      ? new DocumentDecoration(document)
-      : undefined
+    getDecorationsMode() === "disabled"
+      ? undefined
+      : new DocumentDecoration(document)
 
   const documentDiagnostics = new DocumentDiagnostics(
     document,
@@ -257,7 +257,7 @@ export const generatePackagesDiagnostics = async (
   // Obtains, through NPM, the latest available version of each installed package.
   // As a result of each promise, we will have the package name and its latest version.
   await Promise.all(
-    packagesInfos.map((packageInfo) => {
+    packagesInfos.map(async (packageInfo) => {
       if (!packageInfo.isNameValid()) {
         return
       }
@@ -300,7 +300,7 @@ export const generatePackagesDiagnostics = async (
 
     if (packagesAdvisories) {
       await Promise.all(
-        packagesInfos.map((packageInfo) =>
+        packagesInfos.map(async (packageInfo) =>
           detectAdvisoryDiagnostics(
             packagesAdvisories,
             packageInfo,
@@ -312,7 +312,7 @@ export const generatePackagesDiagnostics = async (
     }
   }
 
-  documentDiagnostics.render()
+  void documentDiagnostics.render()
 }
 
 // Notifies you of potential security advisory issues.
@@ -330,12 +330,12 @@ const detectAdvisoryDiagnostics = async (
 
   const versionNormalized = packageInfo.getVersionNormalized()
 
-  if (!versionNormalized) {
+  if (versionNormalized === undefined) {
     return
   }
 
-  const packageAdvisory = packageAdvisories.find((packageAdvisory) =>
-    intersects(packageAdvisory.vulnerable_versions, versionNormalized),
+  const packageAdvisory = packageAdvisories.find((advisory) =>
+    intersects(advisory.vulnerable_versions, versionNormalized),
   )
 
   if (packageAdvisory) {
@@ -358,8 +358,8 @@ const detectAdvisoryDiagnostics = async (
           return false
         }
 
-        for (const packageAdvisory of packageAdvisories) {
-          if (satisfies(packageVersion, packageAdvisory.vulnerable_versions)) {
+        for (const advisory of packageAdvisories) {
+          if (satisfies(packageVersion, advisory.vulnerable_versions)) {
             return false
           }
         }
@@ -374,14 +374,7 @@ const detectAdvisoryDiagnostics = async (
       `>${versionNormalized}`,
     )
 
-    if (versionFutureNotAffected) {
-      advisoryMessages.push(
-        l10n.t(
-          "Please upgrade to version {0} or higher.",
-          versionFutureNotAffected,
-        ),
-      )
-    } else {
+    if (versionFutureNotAffected === null) {
       advisoryMessages.push(l10n.t("No fix available yet."))
 
       // If there is no future version available then it suggests a downgrade.
@@ -391,7 +384,7 @@ const detectAdvisoryDiagnostics = async (
         `<${versionNormalized}`,
       )
 
-      if (versionPastNotAffected) {
+      if (versionPastNotAffected !== null) {
         advisoryMessages.push(
           l10n.t(
             "If possible, downgrade to version {0}.",
@@ -399,6 +392,13 @@ const detectAdvisoryDiagnostics = async (
           ),
         )
       }
+    } else {
+      advisoryMessages.push(
+        l10n.t(
+          "Please upgrade to version {0} or higher.",
+          versionFutureNotAffected,
+        ),
+      )
     }
 
     advisoryMessages.push(`(${packageName})`)
