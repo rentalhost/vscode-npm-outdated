@@ -1,5 +1,5 @@
 {
-  "name": "npm-outdated",
+  "name": "npm-outdated-plus",
   "displayName": "npm-outdated plus",
   "description": "Displays a message in package.json files for packages with newer versions available. Supports npm and pnpm.",
   "version": "3.0.0",

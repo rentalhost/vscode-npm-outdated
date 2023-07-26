@@ -1,0 +1,42 @@
+{
+  "excluding major": "excepto major",
+
+  "Update \"{0}\" to {1}": "Actualizar \"{0}\" a {1}",
+  "Update {0} selected packages": "Actualizar {0} paquetes seleccionados",
+  "Update all {0} packages": "Actualizar todos los {0} paquetes",
+
+  "Save your package.json and run your package manager install command to finish updating packages.": "Guarde su package.json y ejecute el comando de instalación de su gestor de paquetes para finalizar la actualización de los paquetes.",
+  "Do it for me!": "¡Hazlo por mí!",
+
+  "Installing selected packages...": "Instalando paquetes seleccionados...",
+  "Done.": "Hecho.",
+
+  "Packages installed successfully!": "¡Paquetes instalados correctamente!",
+  "Failed to install packages. Check the output console.": "Error al instalar paquetes. Verifique la consola de salida.",
+
+  "Invalid package version.": "Versión de paquete no válida.",
+  "Package version not available.": "Versión del paquete no disponible.",
+  "Package \"{0}\" pending installation: {1}.": "Paquete \"{0}\" pendiente de instalación: {1}",
+  "Newer version of \"{0}\" is available: {1}.": "Nueva versión de \"{0}\" disponible: {1}",
+  "Pre-release version of \"{0}\".": "Versión previa de \"{0}\".",
+  "Ready-to-install package \"{0}\" at version {1}. Just run your package manager install command.": "Paquete listo para instalar \"{0}\" en la versión {1}. Solo ejecute el comando de instalación de su gestor de paquetes.",
+  "Security advisory: this package version has a known flaw level {0}/{1}.": "",
+  "Please upgrade to version {0} or higher.": "Por favor, actualice a la versión {0} o superior.",
+  "No fix available yet.": "Todavía no hay una solución disponible.",
+  "If possible, downgrade to version {0}.": "Si es posible, degradar a la versión {0}.",
+  "Details": "Detalles",
+  "Install package": "Instalar paquete",
+  "Install packages": "Instalar paquetes",
+
+  "Update available:": "Actualización disponible:",
+  "Latest version:": "Versión más reciente:",
+  "install pending": "instalación pendiente",
+  "already installed, just formalization": "ya instalado, solo formalización",
+  "attention: major update!": "¡atención: actualización major!",
+  "Now run your package manager install command.": "Ahora ejecute el comando de instalación de su gestor de paquetes.",
+  "Security advisory": "Advertencia de seguridad",
+  "low": "bajo",
+  "moderate": "moderado",
+  "high": "alto",
+  "critical": "crítico"
+}
