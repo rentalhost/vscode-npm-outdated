@@ -2,7 +2,7 @@
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated plus",
   "description": "Displays a message in package.json files for packages with newer versions available. Supports npm and pnpm.",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "publisher": "rentalhost",
   "author": "David Rodrigues",
   "l10n": "./locales",
@@ -22,6 +22,7 @@
   ],
   "scripts": {
     "vscode:prepublish": "npm run esbuild-base -- --minify && swc ./out/extension.js -o ./out/extension.js",
+    "vscode:package": "npm run vscode:prepublish && vsce package",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc",
     "watch": "tsc -watch",
@@ -34,7 +35,7 @@
   },
   "icon": "assets/icon.png",
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Linters",

@@ -1,5 +1,5 @@
 import { request } from "node:https";
-import { gunzip, gzipSync } from "node:zlib";
+import { brotliDecompress, gzipSync } from "node:zlib";
 
 import type { IncomingMessage } from "node:http";
 
@@ -126,6 +126,7 @@ export function cacheEnabled(): boolean {
 interface FetchLite {
   body?: object;
   method?: "get" | "post";
+  acceptSimplified?: boolean;
   url: string;
 }
 
@@ -143,12 +144,9 @@ export async function fetchLite<T>(options: FetchLite) {
       return;
     }
 
-    const { href } = url;
-    const headers = { "content-type": "application/json" };
-
     const thisRequest = request(
-      href,
-      { headers, method: options.method ?? "get" },
+      url.href,
+      { method: options.method ?? "get" },
       (response: IncomingMessage) => {
         const responseBuffers: Buffer[] = [];
 
@@ -166,16 +164,23 @@ export async function fetchLite<T>(options: FetchLite) {
             return;
           }
 
-          gunzip(Buffer.concat(responseBuffers), (_error, contents) => {
-            resolve(JSON.parse(contents.toString()) as T);
-          });
+          brotliDecompress(
+            Buffer.concat(responseBuffers),
+            (_error, contents) => {
+              resolve(JSON.parse(contents.toString()) as T);
+            },
+          );
         });
       },
     );
 
     thisRequest.setHeader("Content-Type", "application/json");
     thisRequest.setHeader("Content-Encoding", "gzip");
-    thisRequest.setHeader("Accept-Encoding", "gzip");
+    thisRequest.setHeader("Accept-Encoding", "br");
+
+    if (options.acceptSimplified) {
+      thisRequest.setHeader("Accept", "application/vnd.npm.install-v1+json");
+    }
 
     if (options.body !== undefined) {
       const bodyStringify = gzipSync(JSON.stringify(options.body));

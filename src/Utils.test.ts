@@ -1,3 +1,4 @@
+import { PackageAdvisory } from "./PackageManager";
 import { cacheEnabled, fetchLite, lazyCallback, promiseLimit } from "./Utils";
 
 const TIMER_MULTIPLIER = 3;
@@ -154,7 +155,7 @@ describe("utils", () => {
     expect(cacheEnabled()).toBeTruthy();
   });
 
-  it("fetchLite: access to NPM Registry (advisories)", async () => {
+  it("fetchLite: access to NPM Registry (advisories): empty", async () => {
     expect.assertions(1);
 
     const fetchSuccess = await fetchLite({
@@ -166,11 +167,28 @@ describe("utils", () => {
     expect(fetchSuccess).toStrictEqual({});
   });
 
+  it("fetchLite: access to NPM Registry (advisories): found", async () => {
+    expect.assertions(3);
+
+    const fetchSuccess: { lodash: PackageAdvisory[] } = (await fetchLite({
+      body: { lodash: ["4.17.20"] },
+      method: "post",
+      url: "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
+    }))!;
+
+    expect(fetchSuccess).toHaveProperty("lodash");
+    expect(fetchSuccess.lodash).toHaveLength(2);
+    expect(fetchSuccess.lodash[0]!.url).toBe(
+      "https://github.com/advisories/GHSA-35jh-r3h4-6jhm",
+    );
+  });
+
   it("fetchLite: access to NPM Registry (package)", async () => {
     expect.assertions(1);
 
     const fetchSuccess = await fetchLite({
       url: "https://registry.npmjs.org/node-fetch",
+      acceptSimplified: true,
     });
 
     expect(fetchSuccess).toBeInstanceOf(Object);

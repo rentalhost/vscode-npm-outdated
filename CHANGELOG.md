@@ -3,6 +3,7 @@
 ## 3.1.0 - 23/12/2023
 
 - Added support to `peerDependencies`;
+- Optimized package repository analysis to reduce data transfer;
 
 ## 3.0.0 - 25/07/2023
 

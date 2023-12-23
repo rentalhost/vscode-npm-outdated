@@ -47,6 +47,7 @@ export async function getPackageVersions(
   // The process is cached if it is triggered quickly, within lifetime.
   const execPromise = fetchLite<NPMRegistryPackage>({
     url: `https://registry.npmjs.org/${name}`,
+    acceptSimplified: true,
   }).then(async (data): Promise<string[] | null> => {
     if (data?.versions) {
       return Object.keys(data.versions);
