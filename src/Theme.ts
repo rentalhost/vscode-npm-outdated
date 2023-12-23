@@ -4,12 +4,12 @@ export const Icons = {
   CHECKING: "🗘",
   PENDING: "⭳",
   UPDATABLE: "⚠",
-}
+};
 
 export const Margins = {
   MARGIN_INITIAL: { margin: `0 0 0 2ch` }, // First decoration on line (two spaces from code).
   MARGIN_THEN: { margin: `0 0 0 1ch` }, // Next decorations on line (one space between).
-}
+};
 
 export const ThemeLight = {
   DEFAULT: { color: "silver" }, // Eg. "update available" and checking icon
@@ -27,7 +27,7 @@ export const ThemeLight = {
   LABEL_PRERELEASE: { color: "#0451A5" }, // Eg. "<pre-release>"
   LABEL_UPDATABLE: { color: "gray" }, // Eg. "update available"
   LABEL_VERSION: { color: "#001080" }, // Eg. "3.0.1"
-}
+};
 
 export const ThemeDark = {
   DEFAULT: { color: "gray" },
@@ -45,4 +45,4 @@ export const ThemeDark = {
   LABEL_PRERELEASE: { color: "#B392F0" },
   LABEL_UPDATABLE: { color: "silver" },
   LABEL_VERSION: { color: "#9CDCFE" },
-}
+};

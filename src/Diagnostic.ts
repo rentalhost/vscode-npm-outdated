@@ -1,4 +1,4 @@
-import { dirname, sep } from "node:path"
+import { dirname, sep } from "node:path";
 
 import {
   intersects,
@@ -6,99 +6,103 @@ import {
   minSatisfying,
   prerelease,
   satisfies,
-} from "semver"
+} from "semver";
 import {
   Diagnostic,
-  type DiagnosticCollection,
   DiagnosticSeverity,
-  type ExtensionContext,
   l10n,
-  type Range,
-  type TextDocument,
-  type TextDocumentChangeEvent,
-  type TextEditor,
   Uri,
   window,
   workspace,
-} from "vscode"
+} from "vscode";
 
-import { DIAGNOSTIC_ACTION } from "./CodeAction"
-import { getDocumentPackages } from "./Document"
+import { DIAGNOSTIC_ACTION } from "./CodeAction";
+import { getDocumentPackages } from "./Document";
 import {
   DocumentDecoration,
   DocumentDecorationManager,
-} from "./DocumentDecoration"
-import { DocumentDiagnostics } from "./DocumentDiagnostics"
-import { type PackageInfo } from "./PackageInfo"
+} from "./DocumentDecoration";
+import { DocumentDiagnostics } from "./DocumentDiagnostics";
 import {
   getPackageManager,
   getPackagesAdvisories,
   PackageManager,
   packageManagerCaches,
-  type PackagesAdvisories,
   packagesInstalledCaches,
-} from "./PackageManager"
-import { name as packageName } from "./plugin.json"
+} from "./PackageManager";
+import { name as packageName } from "./plugin.json";
 import {
   getDecorationsMode,
   getParallelProcessesLimit,
   identifySecurityAdvisories,
-} from "./Settings"
-import { Icons } from "./Theme"
-import { promiseLimit } from "./Utils"
+} from "./Settings";
+import { Icons } from "./Theme";
+import { promiseLimit } from "./Utils";
 
-const isPackageJsonDocument = (document: TextDocument): boolean =>
-  document.fileName.endsWith(`${sep}package.json`)
+import type { PackageInfo } from "./PackageInfo";
+import type { PackagesAdvisories } from "./PackageManager";
+import type {
+  DiagnosticCollection,
+  ExtensionContext,
+  Range,
+  TextDocument,
+  TextDocumentChangeEvent,
+  TextEditor,
+} from "vscode";
 
-export const diagnosticSubscribe = (
+function isPackageJsonDocument(document: TextDocument): boolean {
+  return document.fileName.endsWith(`${sep}package.json`);
+}
+
+export function diagnosticSubscribe(
   context: ExtensionContext,
   diagnostics: DiagnosticCollection,
   onChange: (document: TextDocument) => void,
-): void => {
+): void {
   // Handles the active editor change, but only continues with package.json files.
-  const handleChange = (document: TextDocument): void => {
+  function handleChange(document: TextDocument): void {
     if (isPackageJsonDocument(document)) {
-      onChange(document)
+      onChange(document);
     }
   }
 
   // Trigger on the currently active editor, if any..
   if (window.activeTextEditor) {
-    handleChange(window.activeTextEditor.document)
+    handleChange(window.activeTextEditor.document);
   }
 
   // Trigger when any file in the workspace is modified.
   // Our interest here is to know about the package.json itself, package-lock.json or pnpm-lock.yaml.
-  const lockerUpdated = (uri: Uri): void => {
-    const workspacePath = dirname(uri.fsPath)
+  function lockerUpdated(uri: Uri): void {
+    const workspacePath = dirname(uri.fsPath);
 
-    packageManagerCaches.get(workspacePath)?.invalidate()
-    packagesInstalledCaches.get(workspacePath)?.invalidate()
+    packageManagerCaches.get(workspacePath)?.invalidate();
+    packagesInstalledCaches.get(workspacePath)?.invalidate();
 
     for (const editor of window.visibleTextEditors) {
-      handleChange(editor.document)
+      handleChange(editor.document);
     }
   }
 
   const lockerWatcher = workspace.createFileSystemWatcher(
     "**/{package.json,package-lock.json,pnpm-lock.yaml}",
-  )
+  );
 
   const nodeModulesWatcher = workspace.createFileSystemWatcher(
     "**/node_modules/**/*",
-  )
+  );
 
   context.subscriptions.push(
     // Trigger when the active editor changes.
     window.onDidChangeActiveTextEditor((editor: TextEditor | undefined) => {
       if (editor) {
-        handleChange(editor.document)
+        handleChange(editor.document);
       }
     }),
 
     // Trigger when the active document text is modified.
     workspace.onDidChangeTextDocument((editor: TextDocumentChangeEvent) => {
-      handleChange(editor.document)
+      handleChange(editor.document);
     }),
 
     lockerWatcher.onDidCreate(lockerUpdated),
@@ -112,12 +116,12 @@ export const diagnosticSubscribe = (
     // Trigger when the active document is closed, removing the current document from the diagnostic collection.
     workspace.onDidCloseTextDocument((document: TextDocument) => {
       if (isPackageJsonDocument(document)) {
-        diagnostics.delete(document.uri)
+        diagnostics.delete(document.uri);
 
-        DocumentDecorationManager.flushDocument(document)
+        DocumentDecorationManager.flushDocument(document);
       }
     }),
-  )
+  );
 }
 
 export enum DiagnosticType {
@@ -134,36 +138,36 @@ export class PackageRelatedDiagnostic extends Diagnostic {
     public packageRelated: PackageInfo,
     public type = DiagnosticType.GENERAL,
   ) {
-    super(range, message, severity)
+    super(range, message, severity);
 
-    this.code = { target: document.uri, value: DIAGNOSTIC_ACTION }
+    this.code = { target: document.uri, value: DIAGNOSTIC_ACTION };
   }
 
   public static is(
     diagnostic: Diagnostic | PackageRelatedDiagnostic,
   ): diagnostic is PackageRelatedDiagnostic {
-    return "packageRelated" in diagnostic
+    return "packageRelated" in diagnostic;
   }
 }
 
-export const getPackageDiagnostic = async (
+export async function getPackageDiagnostic(
   document: TextDocument,
   packageInfo: PackageInfo,
-): Promise<Diagnostic | PackageRelatedDiagnostic | undefined> => {
+): Promise<Diagnostic | PackageRelatedDiagnostic | undefined> {
   if (!packageInfo.isVersionValidRange()) {
     return new Diagnostic(
       packageInfo.versionRange,
       l10n.t("Invalid package version."),
       DiagnosticSeverity.Error,
-    )
+    );
   }
 
-  const versionLatest = await packageInfo.getVersionLatest()
+  const versionLatest = await packageInfo.getVersionLatest();
 
   // When no latest version is found, we just ignore it.
   // In practice, this is an exception-of-the-exception, and is expected to never happen.
   if (versionLatest === null) {
-    return undefined
+    return undefined;
   }
 
   if (!(await packageInfo.isVersionReleased())) {
@@ -173,7 +177,7 @@ export const getPackageDiagnostic = async (
       DiagnosticSeverity.Error,
       document,
       packageInfo,
-    )
+    );
   }
 
   if (!(await packageInfo.isVersionUpdatable())) {
@@ -191,10 +195,10 @@ export const getPackageDiagnostic = async (
         document,
         packageInfo,
         DiagnosticType.READY_TO_INSTALL,
-      )
+      );
     }
 
-    return undefined
+    return undefined;
   }
 
   if (!(await packageInfo.isVersionMaxed())) {
@@ -208,7 +212,7 @@ export const getPackageDiagnostic = async (
       DiagnosticSeverity.Warning,
       document,
       packageInfo,
-    )
+    );
   }
 
   // If the user-defined version is higher than the last available version, then the user is probably using a pre-release version.
@@ -218,85 +222,85 @@ export const getPackageDiagnostic = async (
       packageInfo.versionRange,
       l10n.t('Pre-release version of "{0}".', packageInfo.name),
       DiagnosticSeverity.Information,
-    )
+    );
   }
 
   // istanbul ignore next
-  return undefined
+  return undefined;
 }
 
 // Analyzes the document dependencies and returns the diagnostics.
-export const generatePackagesDiagnostics = async (
+export async function generatePackagesDiagnostics(
   document: TextDocument,
   diagnosticsCollection: DiagnosticCollection,
-): Promise<void> => {
+): Promise<void> {
   // Soft-disable extension if none Package Manager installed is detected.
   if ((await getPackageManager(document)) === PackageManager.NONE) {
-    return
+    return;
   }
 
   // Read dependencies from package.json to get the name of packages used.
-  const packagesInfos = Object.values(await getDocumentPackages(document))
+  const packagesInfos = Object.values(await getDocumentPackages(document));
 
   const documentDecorations =
     getDecorationsMode() === "disabled"
       ? undefined
-      : new DocumentDecoration(document)
+      : new DocumentDecoration(document);
 
   const documentDiagnostics = new DocumentDiagnostics(
     document,
     diagnosticsCollection,
-  )
+  );
 
   if (!documentDecorations) {
-    DocumentDecorationManager.flushDocument(document)
+    DocumentDecorationManager.flushDocument(document);
   }
 
-  const parallelProcessing = promiseLimit(getParallelProcessesLimit())
+  const parallelProcessing = promiseLimit(getParallelProcessesLimit());
 
   // Obtains, through NPM, the latest available version of each installed package.
   // As a result of each promise, we will have the package name and its latest version.
   await Promise.all(
     packagesInfos.map(async (packageInfo) => {
       if (!packageInfo.isNameValid()) {
-        return
+        return;
       }
 
       if (packageInfo.isVersionComplex() || packageInfo.isVersionIgnorable()) {
-        return
+        return;
       }
 
       return parallelProcessing(async () => {
-        documentDecorations?.setCheckingMessage(packageInfo.getLine())
+        documentDecorations?.setCheckingMessage(packageInfo.getLine());
 
         const packageDiagnostic = await getPackageDiagnostic(
           document,
           packageInfo,
-        )
+        );
 
         if (packageDiagnostic !== undefined) {
-          documentDiagnostics.push(packageDiagnostic)
+          documentDiagnostics.push(packageDiagnostic);
 
           if (PackageRelatedDiagnostic.is(packageDiagnostic)) {
             return documentDecorations?.setUpdateMessage(
               packageInfo.getLine(),
               packageDiagnostic,
-            )
+            );
           }
 
           if (packageDiagnostic.severity === DiagnosticSeverity.Error) {
-            return documentDecorations?.clearLine(packageInfo.getLine())
+            return documentDecorations?.clearLine(packageInfo.getLine());
           }
         }
 
-        documentDecorations?.setCheckedMessage(packageInfo.getLine())
-      })
+        documentDecorations?.setCheckedMessage(packageInfo.getLine());
+      });
     }),
-  )
+  );
 
   if (identifySecurityAdvisories()) {
     // Search for security advisories in current packages.
-    const packagesAdvisories = await getPackagesAdvisories(packagesInfos)
+    const packagesAdvisories = await getPackagesAdvisories(packagesInfos);
 
     if (packagesAdvisories) {
       await Promise.all(
@@ -308,39 +312,39 @@ export const generatePackagesDiagnostics = async (
             documentDiagnostics,
           ),
         ),
-      )
+      );
     }
   }
 
-  void documentDiagnostics.render()
+  void documentDiagnostics.render();
 }
 
 // Notifies you of potential security advisory issues.
-const detectAdvisoryDiagnostics = async (
+async function detectAdvisoryDiagnostics(
   packagesAdvisories: PackagesAdvisories,
   packageInfo: PackageInfo,
   documentDecorations: DocumentDecoration | undefined,
   documentDiagnostics: DocumentDiagnostics,
-): Promise<void> => {
-  const packageAdvisories = packagesAdvisories.get(packageInfo.name)
+): Promise<void> {
+  const packageAdvisories = packagesAdvisories.get(packageInfo.name);
 
   if (!packageAdvisories) {
-    return
+    return;
   }
 
-  const versionNormalized = packageInfo.getVersionNormalized()
+  const versionNormalized = packageInfo.getVersionNormalized();
 
   if (versionNormalized === undefined) {
-    return
+    return;
   }
 
   const packageAdvisory = packageAdvisories.find((advisory) =>
     intersects(advisory.vulnerable_versions, versionNormalized),
-  )
+  );
 
   if (packageAdvisory) {
     // If there is any advisory for the package, update the decoration.
-    documentDecorations?.setAdvisoryMessage(packageInfo, packageAdvisory)
+    documentDecorations?.setAdvisoryMessage(packageInfo, packageAdvisory);
 
     const advisoryMessages = [
       Icons.ADVISORY,
@@ -349,40 +353,40 @@ const detectAdvisoryDiagnostics = async (
         packageAdvisory.severity.toUpperCase(),
         packageAdvisory.cvss.score.toFixed(1),
       ),
-    ]
+    ];
 
     // Filters available versions that are not affected by any type of advisory.
     const versionsNotAffected = (await packageInfo.getVersions())!.filter(
       (packageVersion) => {
         if (prerelease(packageVersion)) {
-          return false
+          return false;
         }
 
         for (const advisory of packageAdvisories) {
           if (satisfies(packageVersion, advisory.vulnerable_versions)) {
-            return false
+            return false;
           }
         }
 
-        return true
+        return true;
       },
-    )
+    );
 
     // Gets the closest possible future version that does not have the problem.
     const versionFutureNotAffected = minSatisfying(
       versionsNotAffected,
       `>${versionNormalized}`,
-    )
+    );
 
     if (versionFutureNotAffected === null) {
-      advisoryMessages.push(l10n.t("No fix available yet."))
+      advisoryMessages.push(l10n.t("No fix available yet."));
 
       // If there is no future version available then it suggests a downgrade.
       // Gets the largest available version in which a flaw does not exist.
       const versionPastNotAffected = maxSatisfying(
         versionsNotAffected,
         `<${versionNormalized}`,
-      )
+      );
 
       if (versionPastNotAffected !== null) {
         advisoryMessages.push(
@@ -390,7 +394,7 @@ const detectAdvisoryDiagnostics = async (
             "If possible, downgrade to version {0}.",
             versionPastNotAffected,
           ),
-        )
+        );
       }
     } else {
       advisoryMessages.push(
@@ -398,23 +402,23 @@ const detectAdvisoryDiagnostics = async (
           "Please upgrade to version {0} or higher.",
           versionFutureNotAffected,
         ),
-      )
+      );
     }
 
-    advisoryMessages.push(`(${packageName})`)
+    advisoryMessages.push(`(${packageName})`);
 
     // And adds a new diagnostic.
     const diagnostic = new Diagnostic(
       packageInfo.versionRange,
       advisoryMessages.join(" "),
       DiagnosticSeverity.Error,
-    )
+    );
 
     diagnostic.code = {
       target: Uri.parse(packageAdvisory.url),
       value: l10n.t("Details"),
-    }
+    };
 
-    documentDiagnostics.push(diagnostic)
+    documentDiagnostics.push(diagnostic);
   }
 }

@@ -5,24 +5,26 @@ import {
   gte,
   maxSatisfying,
   prerelease,
-  type ReleaseType,
   valid,
   validRange,
-} from "semver"
-import { type Range, type TextDocument } from "vscode"
+} from "semver";
 
-import { getPackagesInstalled, getPackageVersions } from "./PackageManager"
-import { getLevel, hasMajorUpdateProtection } from "./Settings"
+import { getPackagesInstalled, getPackageVersions } from "./PackageManager";
+import { getLevel, hasMajorUpdateProtection } from "./Settings";
 
-const PACKAGE_NAME_REGEXP = /^(?:@[a-z\d-][a-z\d\-._]*\/)?[a-z\d-][a-z\d\-._]*$/
+import type { ReleaseType } from "semver";
+import type { Range, TextDocument } from "vscode";
 
-const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/
+const PACKAGE_NAME_REGEXP =
+  /^(?:@[a-z\d-][a-z\d\-._]*\/)?[a-z\d-][a-z\d\-._]*$/;
 
-const PACKAGE_VERSION_PATH_REGEXP = /^(?:\.\.?|~)?\//
+const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/;
 
-const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/
+const PACKAGE_VERSION_PATH_REGEXP = /^(?:\.\.?|~)?\//;
 
-const PACKAGE_VERSION_GITHUB_REGEX = /^[a-zA-Z\d][\w-]*[a-zA-Z\d]\//
+const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/;
+
+const PACKAGE_VERSION_GITHUB_REGEX = /^[a-z\d][\w-]*[a-z\d]\//i;
 
 const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
   major: 2,
@@ -32,7 +34,7 @@ const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
   /** ignore */ preminor: -1,
   /** ignore */ prepatch: -1,
   /** ignore */ prerelease: -1,
-}
+};
 
 // The package info, based on user-document.
 export class PackageInfo {
@@ -46,19 +48,19 @@ export class PackageInfo {
 
   // Get the package line on `packages.json` document.
   public getLine(): number {
-    return this.versionRange.end.line
+    return this.versionRange.end.line;
   }
 
   // Check if is a valid package name.
   // Eg. "typescript" instead of "type script".
   public isNameValid(): boolean {
-    return PACKAGE_NAME_REGEXP.test(this.name)
+    return PACKAGE_NAME_REGEXP.test(this.name);
   }
 
   // Check if is a complex range versions, as it is difficult to understand user needs.
   // Eg. "^13 || ^14.5 || 15.6 - 15.7 || >=16.4 <17"
   public isVersionComplex(): boolean {
-    return PACKAGE_VERSION_COMPLEX_REGEXP.test(this.version)
+    return PACKAGE_VERSION_COMPLEX_REGEXP.test(this.version);
   }
 
   // Check if a valid version, but not a semver.
@@ -68,91 +70,91 @@ export class PackageInfo {
       PACKAGE_VERSION_PATH_REGEXP.test(this.version) ||
       PACKAGE_VERSION_PROTOCOL_REGEX.test(this.version) ||
       PACKAGE_VERSION_GITHUB_REGEX.test(this.version)
-    )
+    );
   }
 
   // If the version specified by the user is a valid range.
   // Eg. { "package": "blah blah blah" } must be invalid and "^3.0" valid.
   public isVersionValidRange(): boolean {
-    return validRange(this.version) !== null
+    return validRange(this.version) !== null;
   }
 
   // If the version is a pre-release version.
   // Eg. "13.0.7-canary.3"
   public isVersionPrerelease(): boolean {
-    const versionNormalized = this.getVersionNormalized()
+    const versionNormalized = this.getVersionNormalized();
 
     return (
       versionNormalized !== undefined && prerelease(versionNormalized) !== null
-    )
+    );
   }
 
   // If the version is the latest version available for this package.
   public async isVersionMaxed(): Promise<boolean> {
-    return (await this.getVersionLatest()) === this.getVersionNormalized()
+    return (await this.getVersionLatest()) === this.getVersionNormalized();
   }
 
   // If the latest version update require a major bump.
   public async requiresVersionMajorUpdate(): Promise<boolean> {
-    const versionLatest = await this.getVersionLatest()
-    const versionInstalled = await this.getVersionInstalled()
+    const versionLatest = await this.getVersionLatest();
+    const versionInstalled = await this.getVersionInstalled();
 
     return Boolean(
       versionLatest !== null &&
         versionInstalled !== undefined &&
         diff(versionLatest, versionInstalled) === "major" &&
         gte(versionLatest, versionInstalled),
-    )
+    );
   }
 
   // If the latest version is already to be installed.
   public async requiresInstallCommand(): Promise<boolean> {
-    const versionClear = this.getVersionClear()
+    const versionClear = this.getVersionClear();
 
     return (
       (await this.getVersionLatest()) === versionClear &&
       (await this.getVersionInstalled()) !== versionClear
-    )
+    );
   }
 
   // Get the package version installed.
   public async getVersionInstalled(): Promise<string | undefined> {
-    const packagesInstalled = await getPackagesInstalled(this.document)
+    const packagesInstalled = await getPackagesInstalled(this.document);
 
-    return packagesInstalled?.[this.name]
+    return packagesInstalled?.[this.name];
   }
 
   // Whether version upgrade can be suggested according to user settings.
   // Pre-release versions are always suggested.
   public async isVersionUpdatable(): Promise<boolean> {
     if (this.isVersionPrerelease()) {
-      return true
+      return true;
     }
 
-    const versionLatest = (await this.getVersionLatest())!
-    const versionNormalized = this.getVersionNormalized()
+    const versionLatest = (await this.getVersionLatest())!;
+    const versionNormalized = this.getVersionNormalized();
 
     if (versionNormalized === undefined) {
-      return true
+      return true;
     }
 
     // Check if the version difference is compatible with what was configured by the user.
     // If the difference is less than the minimum configured then there is no need for a diagnostic.
     // Eg. "1.0 => 1.1" is a "minor" diff(). By default, we allow any non-prerelease diff() starting from "patch".
     // Pre-releases user-defined will always be recommended.
-    const packageDiff = diff(versionLatest, versionNormalized)
+    const packageDiff = diff(versionLatest, versionNormalized);
 
     return Boolean(
       packageDiff &&
         PACKAGE_DIFF_LEVELS[packageDiff] >= PACKAGE_DIFF_LEVELS[getLevel()],
-    )
+    );
   }
 
   // If the user-defined version is a released version (including pre-releases).
   public async isVersionReleased(): Promise<boolean> {
-    const versions = await this.getVersions()
+    const versions = await this.getVersions();
 
-    return Boolean(versions && maxSatisfying(versions, this.version) !== null)
+    return Boolean(versions && maxSatisfying(versions, this.version) !== null);
   }
 
   // Strip all non-numeric values from the beginning of a version.
@@ -161,42 +163,42 @@ export class PackageInfo {
   // Eg.: semver.clean("^13.0.7-canary.3") => null
   // Expected: "13.0.7-canary.3"
   public getVersionClear(): string {
-    return this.version.replace(/^\D+/, "")
+    return this.version.replace(/^\D+/, "");
   }
 
   // Normalizes the package version, through the informed range.
   // If the result is an invalid version, try to correct it via coerce().
   // Eg. "^3" (valid range, but "3" is a invalid version) => "3.0".
   public getVersionNormalized(): string | undefined {
-    const version = this.getVersionClear()
+    const version = this.getVersionClear();
 
     if (valid(version) === null) {
-      return coerce(version)?.version
+      return coerce(version)?.version;
     }
 
-    return version
+    return version;
   }
 
   // Get the latest version released of this package.
   public async getVersionLatest(): Promise<string | null> {
-    const packageVersions = await this.getVersions()
+    const packageVersions = await this.getVersions();
 
     if (!packageVersions) {
-      return null
+      return null;
     }
 
-    const versionClean = this.getVersionClear()
-    const isPrerelease = this.isVersionPrerelease()
+    const versionClean = this.getVersionClear();
+    const isPrerelease = this.isVersionPrerelease();
 
     // We captured the largest version currently available.
     const versionLatest = maxSatisfying(packageVersions, "*", {
       includePrerelease: isPrerelease,
-    })
+    });
 
     // If protection is not enabled, we will return the latest available version, even if there is a major bump.
     // Otherwise, we will try to respect the user-defined version limit.
     if (!hasMajorUpdateProtection()) {
-      return versionLatest
+      return versionLatest;
     }
 
     // If we are dealing with a user-defined pre-release, we should check the latest compatible non-pre-release version available.
@@ -205,13 +207,13 @@ export class PackageInfo {
       const versionNonPrerelease = maxSatisfying(
         packageVersions,
         `^${coerce(versionClean)!.raw}`,
-      )
+      );
 
       if (
         versionNonPrerelease !== null &&
         gt(versionNonPrerelease, versionClean)
       ) {
-        return versionNonPrerelease
+        return versionNonPrerelease;
       }
     }
 
@@ -221,28 +223,28 @@ export class PackageInfo {
       {
         includePrerelease: isPrerelease,
       },
-    )
+    );
 
     // If the user-defined version is exactly the same version available within the range given by the user,
     // we may suggest the latest version, which may include a major bump.
     // Eg. { "package": "^5.1.3" } and latest is also "5.1.3".
     if (versionSatisfying === null || versionClean === versionSatisfying) {
-      return versionLatest
+      return versionLatest;
     }
 
     // Otherwise, we will suggest the latest version within the user's range first.
-    return versionSatisfying
+    return versionSatisfying;
   }
 
   // If the latest version is already installed.
   public async isVersionLatestAlreadyInstalled(): Promise<boolean> {
     return (
       (await this.getVersionLatest()) === (await this.getVersionInstalled())
-    )
+    );
   }
 
   // Get all versions released of this package.
   public async getVersions(): ReturnType<typeof getPackageVersions> {
-    return getPackageVersions(this.name)
+    return getPackageVersions(this.name);
   }
 }

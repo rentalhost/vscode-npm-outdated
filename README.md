@@ -4,7 +4,7 @@
 
 Displays a diagnostic message in package.json files for packages which have newer versions available as well as a code action to quickly update packages to their latest version.
 
-![Screenshot](/images/screenshot.jpg)
+![Screenshot](/images/screenshot.png)
 
 ## Usage
 

@@ -1,21 +1,20 @@
-import { prerelease } from "semver"
-import {
-  type DecorationOptions,
-  l10n,
-  Range,
-  type TextDocument,
-  type TextEditor,
-  type TextEditorDecorationType,
-  type ThemableDecorationAttachmentRenderOptions,
-  window,
-} from "vscode"
+import { prerelease } from "semver";
+import { l10n, Range, window } from "vscode";
 
-import { type PackageRelatedDiagnostic } from "./Diagnostic"
-import { type PackageInfo } from "./PackageInfo"
-import { type PackageAdvisory } from "./PackageManager"
-import { getDecorationsMode } from "./Settings"
-import { Icons, Margins, ThemeDark, ThemeLight } from "./Theme"
-import { lazyCallback } from "./Utils"
+import { getDecorationsMode } from "./Settings";
+import { Icons, Margins, ThemeDark, ThemeLight } from "./Theme";
+import { lazyCallback } from "./Utils";
+
+import type { PackageRelatedDiagnostic } from "./Diagnostic";
+import type { PackageInfo } from "./PackageInfo";
+import type { PackageAdvisory } from "./PackageManager";
+import type {
+  DecorationOptions,
+  TextDocument,
+  TextEditor,
+  TextEditorDecorationType,
+  ThemableDecorationAttachmentRenderOptions,
+} from "vscode";
 
 class Message {
   public constructor(
@@ -33,7 +32,7 @@ const decorationTypes = new Map<number, TextEditorDecorationType>([
   [2, window.createTextEditorDecorationType({})],
   [3, window.createTextEditorDecorationType({})],
   [4, window.createTextEditorDecorationType({})],
-])
+]);
 
 // We need to create some decoration levels as needed.
 // Each layer must have its own style implementation, so that the message order is respected.
@@ -42,9 +41,9 @@ export class DocumentDecorationManager {
   private static readonly documents = new WeakMap<
     TextDocument,
     DocumentDecorationManager
-  >()
+  >();
 
-  public layers = new Map<number, DocumentDecorationLayer>()
+  public layers = new Map<number, DocumentDecorationLayer>();
 
   // Returns the decoration layers of a document.
   // If the document has never been used, then instantiate and return.
@@ -52,94 +51,94 @@ export class DocumentDecorationManager {
     document: TextDocument,
   ): DocumentDecorationManager {
     if (!this.documents.has(document)) {
-      this.documents.set(document, new DocumentDecorationManager())
+      this.documents.set(document, new DocumentDecorationManager());
     }
 
-    return this.documents.get(document)!
+    return this.documents.get(document)!;
   }
 
   // When the document is closed, then it unloads the layers defined for it.
   public static flushDocument(document: TextDocument): void {
     const documentLayers =
-      DocumentDecorationManager.fromDocument(document).layers
+      DocumentDecorationManager.fromDocument(document).layers;
 
     for (const layer of documentLayers.values()) {
       for (const editor of window.visibleTextEditors) {
         if (editor.document === document) {
-          editor.setDecorations(layer.type, [])
+          editor.setDecorations(layer.type, []);
         }
       }
     }
 
-    this.documents.delete(document)
+    this.documents.delete(document);
   }
 
   public getLayer(position: number): DocumentDecorationLayer {
     if (!this.layers.has(position)) {
-      this.layers.set(position, new DocumentDecorationLayer(position))
+      this.layers.set(position, new DocumentDecorationLayer(position));
     }
 
-    return this.layers.get(position)!
+    return this.layers.get(position)!;
   }
 
   public flushLayers(): void {
     for (const layer of this.layers.values()) {
-      layer.lines.clear()
+      layer.lines.clear();
     }
   }
 
   public flushLine(line: number): void {
     for (const layer of this.layers.values()) {
-      layer.lines.delete(line)
+      layer.lines.delete(line);
     }
   }
 }
 
 class DocumentDecorationLayer {
-  public lines = new Map<number, DecorationOptions>()
+  public lines = new Map<number, DecorationOptions>();
 
-  public type: TextEditorDecorationType
+  public type: TextEditorDecorationType;
 
   public constructor(position: number) {
-    this.type = decorationTypes.get(position)!
+    this.type = decorationTypes.get(position)!;
   }
 }
 
 export class DocumentDecoration {
-  private readonly editors: TextEditor[]
+  private readonly editors: TextEditor[];
 
-  private flushed = false
+  private flushed = false;
 
-  private readonly render
+  private readonly render;
 
   public constructor(private readonly document: TextDocument) {
     this.render = lazyCallback(() => {
       const documentLayers = DocumentDecorationManager.fromDocument(
         this.document,
-      ).layers.values()
+      ).layers.values();
 
       for (const layer of documentLayers) {
         for (const editor of this.editors) {
-          editor.setDecorations(layer.type, [...layer.lines.values()])
+          editor.setDecorations(layer.type, [...layer.lines.values()]);
         }
       }
-    }, 100)
+    }, 100);
 
     this.editors = window.visibleTextEditors.filter(
       (editor) => editor.document === document,
-    )
+    );
   }
 
   public clearLine(line: number): void {
     const documentLayers = DocumentDecorationManager.fromDocument(
       this.document,
-    ).layers.values()
+    ).layers.values();
 
     for (const decoration of documentLayers) {
-      decoration.lines.delete(line)
+      decoration.lines.delete(line);
     }
 
-    void this.render()
+    void this.render();
   }
 
   public setCheckedMessage(line: number): void {
@@ -149,21 +148,22 @@ export class DocumentDecoration {
         ThemeLight.ICON_CHECKED,
         ThemeDark.ICON_CHECKED,
       ),
-    ])
+    ]);
   }
 
   public setCheckingMessage(line: number): void {
-    this.setLine(line, [new Message(Icons.CHECKING)])
+    this.setLine(line, [new Message(Icons.CHECKING)]);
   }
 
   public async setUpdateMessage(
     line: number,
     packageInfo: PackageRelatedDiagnostic,
   ): Promise<void> {
-    const versionLatest = (await packageInfo.packageRelated.getVersionLatest())!
+    const versionLatest =
+      (await packageInfo.packageRelated.getVersionLatest())!;
 
     const packageVersionInstalled =
-      await packageInfo.packageRelated.getVersionInstalled()
+      await packageInfo.packageRelated.getVersionInstalled();
 
     if (await packageInfo.packageRelated.requiresInstallCommand()) {
       this.setLine(line, [
@@ -173,9 +173,9 @@ export class DocumentDecoration {
           ThemeDark.ICON_AVAILABLE,
         ),
         new Message(l10n.t("Now run your package manager install command.")),
-      ])
+      ]);
 
-      return
+      return;
     }
 
     const updateDetails = [
@@ -196,7 +196,7 @@ export class DocumentDecoration {
         ThemeLight.LABEL_VERSION,
         ThemeDark.LABEL_VERSION,
       ),
-    ]
+    ];
 
     if (packageVersionInstalled === undefined) {
       // If the package has not yet been installed by the user, but defined in the dependencies.
@@ -206,7 +206,7 @@ export class DocumentDecoration {
           ThemeLight.LABEL_PENDING,
           ThemeDark.LABEL_PENDING,
         ),
-      )
+      );
     } else if (
       await packageInfo.packageRelated.isVersionLatestAlreadyInstalled()
     ) {
@@ -217,7 +217,7 @@ export class DocumentDecoration {
           ThemeLight.LABEL_FORMALIZATION,
           ThemeDark.LABEL_FORMALIZATION,
         ),
-      )
+      );
     }
 
     // Identifies whether the suggested version is a major update.
@@ -228,7 +228,7 @@ export class DocumentDecoration {
           ThemeLight.LABEL_MAJOR,
           ThemeDark.LABEL_MAJOR,
         ),
-      )
+      );
     }
 
     // Indicate that the suggested version is pre-release.
@@ -240,10 +240,10 @@ export class DocumentDecoration {
           ThemeLight.LABEL_PRERELEASE,
           ThemeDark.LABEL_PRERELEASE,
         ),
-      )
+      );
     }
 
-    this.setLine(line, updateDetails)
+    this.setLine(line, updateDetails);
   }
 
   public setAdvisoryMessage(
@@ -268,23 +268,23 @@ export class DocumentDecoration {
         ThemeLight.LABEL_ADVISORY_TITLE,
         ThemeDark.LABEL_ADVISORY_TITLE,
       ),
-    ])
+    ]);
   }
 
   private setLine(line: number, messages: Message[]): void {
     const decorationManager = DocumentDecorationManager.fromDocument(
       this.document,
-    )
+    );
 
     if (this.flushed) {
-      decorationManager.flushLine(line)
+      decorationManager.flushLine(line);
     } else {
-      this.flushed = true
-      decorationManager.flushLayers()
+      this.flushed = true;
+      decorationManager.flushLayers();
     }
 
     if (getDecorationsMode() === "simple") {
-      const decorationLayer = decorationManager.getLayer(0)
+      const decorationLayer = decorationManager.getLayer(0);
 
       decorationLayer.lines.set(line, {
         range: new Range(line, 4096, line, 4096),
@@ -298,10 +298,10 @@ export class DocumentDecoration {
             after: { ...ThemeDark.DEFAULT },
           },
         },
-      })
+      });
     } else {
       for (const [messageIndex, message] of messages.entries()) {
-        const decorationLayer = decorationManager.getLayer(messageIndex)
+        const decorationLayer = decorationManager.getLayer(messageIndex);
 
         decorationLayer.lines.set(line, {
           range: new Range(line, 4096, line, 4096),
@@ -321,10 +321,10 @@ export class DocumentDecoration {
               },
             },
           },
-        })
+        });
       }
     }
 
-    void this.render()
+    void this.render();
   }
 }

@@ -4,4 +4,4 @@ module.exports = {
   modulePathIgnorePatterns: ["./out"],
   preset: "ts-jest",
   testEnvironment: "node",
-}
+};

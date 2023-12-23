@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable import/no-namespace */
-import * as ChildProcess from "node:child_process"
-import * as FS from "node:fs"
-import { sep } from "node:path"
+import * as ChildProcess from "node:child_process";
+import * as FS from "node:fs";
+import { sep } from "node:path";
 
-import { type ReleaseType } from "semver"
-import * as vscode from "vscode"
-import { Range } from "vscode"
+import * as vscode from "vscode";
+import { Range } from "vscode";
 
-import { PackageJsonCodeActionProvider } from "./CodeAction"
-import { DocumentDecorationManager } from "./DocumentDecoration"
-import { activate } from "./extension"
-import { type PackageAdvisory, PackageManager } from "./PackageManager"
-import { name as packageName } from "./plugin.json"
-import * as Utils from "./Utils"
+import { PackageJsonCodeActionProvider } from "./CodeAction";
+import { DocumentDecorationManager } from "./DocumentDecoration";
+import { activate } from "./extension";
+import { PackageManager } from "./PackageManager";
+import { name as packageName } from "./plugin.json";
+import * as Utils from "./Utils";
 
-// eslint-disable-next-line jest/no-untyped-mock-factory
+import type { PackageAdvisory } from "./PackageManager";
+import type { ReleaseType } from "semver";
+
 jest.mock("./Utils", () => ({
   __esModule: true,
 
@@ -29,19 +29,19 @@ jest.mock("./Utils", () => ({
       callback(),
 
   waitUntil: (callback: () => void): true => {
-    callback()
+    callback();
 
-    return true
+    return true;
   },
-}))
+}));
 
 interface PluginConfigurations {
-  cacheLifetime?: number
-  decorations?: "disabled" | "fancy" | "simple"
-  identifySecurityAdvisories?: boolean
-  level?: ReleaseType
-  majorUpdateProtection?: boolean
-  parallelProcessesLimit?: number
+  cacheLifetime?: number;
+  decorations?: "disabled" | "fancy" | "simple";
+  identifySecurityAdvisories?: boolean;
+  level?: ReleaseType;
+  majorUpdateProtection?: boolean;
+  parallelProcessesLimit?: number;
 }
 
 const DefaultPluginConfigurations: PluginConfigurations = {
@@ -51,91 +51,90 @@ const DefaultPluginConfigurations: PluginConfigurations = {
   level: "patch",
   majorUpdateProtection: true,
   parallelProcessesLimit: 0,
-}
+};
 
 interface PackageJson {
-  dependencies?: Record<string, string>
-  devDependencies?: Record<string, string>
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 }
 
 interface SimulatorOptions {
-  cacheEnabled?: boolean
+  cacheEnabled?: boolean;
 
-  configurations?: PluginConfigurations
+  configurations?: PluginConfigurations;
 
-  execError?: boolean
+  execError?: boolean;
 
-  packageJson?: PackageJson | ""
+  packageJson?: PackageJson | "";
 
-  packageManager?: PackageManager
+  packageManager?: PackageManager;
 
-  packagesAdvisories?: Record<string, PackageAdvisory[]>
+  packagesAdvisories?: Record<string, PackageAdvisory[]>;
 
-  packagesInstalled?: Record<string, string>
+  packagesInstalled?: Record<string, string>;
 
-  packagesRepository?: Record<string, string[]>
+  packagesRepository?: Record<string, string[]>;
 
-  runAction?: { args?: ExplicitAny[]; name: string }
+  runAction?: { args?: ExplicitAny[]; name: string };
 
-  selectFirsts?: number
+  selectFirsts?: number;
 
-  triggerChangeAfter?: boolean
+  triggerChangeAfter?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExplicitAny = any
+type ExplicitAny = any;
 
 const vscodeMock = vscode as {
-  commands: ExplicitAny
-  languages: ExplicitAny
-  Range: ExplicitAny
-  window: ExplicitAny
-  workspace: ExplicitAny
-}
+  commands: ExplicitAny;
+  languages: ExplicitAny;
+  Range: ExplicitAny;
+  window: ExplicitAny;
+  workspace: ExplicitAny;
+};
 
 const ChildProcessMock = ChildProcess as {
-  exec: ExplicitAny
-}
+  exec: ExplicitAny;
+};
 
 const FSMock = FS as {
-  existsSync: ExplicitAny
-}
+  existsSync: ExplicitAny;
+};
 
 const UtilsMock = Utils as {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  cacheEnabled: typeof import("./Utils").cacheEnabled
+  cacheEnabled: typeof import("./Utils").cacheEnabled;
 
-  fetchLite: unknown
-}
+  fetchLite: unknown;
+};
 
-const dependenciesAsChildren = (
+function dependenciesAsChildren(
   dependencies: Record<string, string>,
-): vscode.DocumentSymbol[] =>
-  Object.entries(dependencies).map(
+): vscode.DocumentSymbol[] {
+  return Object.entries(dependencies).map(
     ([name, version], entryIndex) =>
       ({
         detail: version,
         name,
         range: new Range(entryIndex, 0, entryIndex, 0) as unknown as Range,
       }) as vscode.DocumentSymbol,
-  )
+  );
+}
 
-type ExecCallback = (error: string | null, stdout: string | null) => void
+type ExecCallback = (error: string | null, stdout: string | null) => void;
 
 // Simulates launching diagnostics in a virtual packages.json file.
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
-  let actions: vscode.CodeAction[] = []
-  let diagnostics: vscode.Diagnostic[] = []
-  let decorations: string[][] = []
+export async function vscodeSimulator(options: SimulatorOptions = {}) {
+  let actions: vscode.CodeAction[] = [];
+  let diagnostics: vscode.Diagnostic[] = [];
+  let decorations: string[][] = [];
 
-  const windowsInformation: Array<[string, string[]]> = []
+  const windowsInformation: Array<[string, string[]]> = [];
 
   const subscriptions: Array<[string, (...arguments_: ExplicitAny[]) => void]> =
-    []
-  const commands: Array<[string, (...arguments_: ExplicitAny[]) => void]> = []
+    [];
+  const commands: Array<[string, (...arguments_: ExplicitAny[]) => void]> = [];
 
-  const packageManager = options.packageManager ?? PackageManager.NPM
+  const packageManager = options.packageManager ?? PackageManager.NPM;
 
   const document = {
     fileName: `${sep}tests${sep}package.json`,
@@ -146,42 +145,42 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
       },
     }),
     uri: { fsPath: `${sep}tests` },
-  } as vscode.TextDocument
+  } as vscode.TextDocument;
 
   const editor = {
     document,
     setDecorations: (): void => {
-      decorations = []
+      decorations = [];
 
       const documentLayers =
-        DocumentDecorationManager.fromDocument(document).layers.values()
+        DocumentDecorationManager.fromDocument(document).layers.values();
 
       for (const layer of documentLayers) {
         for (const line of layer.lines.values()) {
-          const lineIndex = line.range.start.line
+          const lineIndex = line.range.start.line;
 
-          decorations[lineIndex] ??= []
+          decorations[lineIndex] ??= [];
           decorations[lineIndex]!.push(
             String(line.renderOptions?.after?.contentText),
-          )
+          );
         }
       }
     },
-  }
+  };
 
   FSMock.existsSync = (file: string): boolean => {
     if (file.endsWith("/.pnpm") && packageManager === PackageManager.PNPM) {
-      return true
+      return true;
     }
 
-    return false
-  }
+    return false;
+  };
 
-  UtilsMock.cacheEnabled = (): boolean => options.cacheEnabled === true
+  UtilsMock.cacheEnabled = (): boolean => options.cacheEnabled === true;
 
   UtilsMock.fetchLite = ({ url }: { url: string }): unknown => {
     if (url.endsWith("/bulk")) {
-      return options.packagesAdvisories
+      return options.packagesAdvisories;
     }
 
     if (options.packagesRepository) {
@@ -198,20 +197,20 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
                 null,
               ]) as [],
             ),
-          })
+          });
         }
       }
     }
 
-    return Promise.resolve()
-  }
+    return Promise.resolve();
+  };
 
   ChildProcessMock.exec = (
     command: string,
     execOptions: ExecCallback | undefined,
     callback?: ExecCallback,
   ): unknown => {
-    const callbackReal = (callback ?? execOptions)!
+    const callbackReal = (callback ?? execOptions)!;
 
     if (
       command === "npm ls --json --depth=0" &&
@@ -228,9 +227,9 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
             ]),
           ),
         }),
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -249,24 +248,24 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
             ),
           },
         ]),
-      )
+      );
 
-      return
+      return;
     }
 
     if (command === "npm --version" && packageManager === PackageManager.NPM) {
-      callbackReal(null, "1.0.0\n")
+      callbackReal(null, "1.0.0\n");
 
-      return
+      return;
     }
 
     if (
       command === "pnpm --version" &&
       packageManager === PackageManager.PNPM
     ) {
-      callbackReal(null, "1.0.0\n")
+      callbackReal(null, "1.0.0\n");
 
-      return
+      return;
     }
 
     if (typeof callbackReal === "function") {
@@ -274,168 +273,168 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
         callbackReal(
           null,
           JSON.stringify(options.packagesRepository!["@private/npm-outdated"]),
-        )
+        );
 
-        return
+        return;
       }
 
-      callbackReal("error", null)
+      callbackReal("error", null);
     }
 
     return {
       on: (_data: ExplicitAny, callbackInner: () => void) => {
-        callbackInner()
+        callbackInner();
       },
       stderr: {
         on: (_data: ExplicitAny, callbackInner: (message: string) => void) => {
           if (options.execError === true) {
-            callbackInner("test")
+            callbackInner("test");
           }
         },
       },
       stdout: {
         on: (_data: ExplicitAny, callbackInner: (message: string) => void) => {
-          callbackInner("test")
+          callbackInner("test");
         },
       },
-    }
-  }
+    };
+  };
 
   vscodeMock.commands.executeCommand = (
     command: string,
   ): Record<string, ExplicitAny> | string | undefined => {
     if (command === "vscode.executeDocumentSymbolProvider") {
-      const symbols = []
+      const symbols = [];
 
       if (options.packageJson === undefined || options.packageJson === "") {
-        return undefined
+        return undefined;
       }
 
       if (options.packageJson.dependencies) {
         symbols.push({
           children: dependenciesAsChildren(options.packageJson.dependencies),
           name: "dependencies",
-        })
+        });
       }
 
       if (options.packageJson.devDependencies) {
         symbols.push({
           children: dependenciesAsChildren(options.packageJson.devDependencies),
           name: "devDependencies",
-        })
+        });
       }
 
-      return symbols
+      return symbols;
     }
 
     if (command === "npm.packageManager") {
-      return "npm"
+      return "npm";
     }
 
-    return undefined
-  }
+    return undefined;
+  };
 
   vscodeMock.commands.registerCommand = (
     name: string,
     callback: (...arguments_: ExplicitAny[]) => void,
-  ): number => commands.push([name, callback])
+  ): number => commands.push([name, callback]);
 
-  vscodeMock.window.activeTextEditor = editor
-  vscodeMock.window.visibleTextEditors = [editor]
+  vscodeMock.window.activeTextEditor = editor;
+  vscodeMock.window.visibleTextEditors = [editor];
 
   vscodeMock.window.onDidChangeActiveTextEditor = (
     handle: () => void,
-  ): number => subscriptions.push(["onDidChangeActiveTextEditor", handle])
+  ): number => subscriptions.push(["onDidChangeActiveTextEditor", handle]);
 
   vscodeMock.window.showErrorMessage = (
     message: string,
     ...items: string[]
   ): string | undefined => {
-    windowsInformation.push([message, items])
+    windowsInformation.push([message, items]);
 
-    return items[0]
-  }
+    return items[0];
+  };
 
-  vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage
+  vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage;
 
   vscodeMock.window.createOutputChannel = jest.fn(() => ({
     append: jest.fn(),
     clear: jest.fn(),
     show: jest.fn(),
-  }))
+  }));
 
   vscodeMock.workspace.onDidChangeTextDocument = (handle: () => void): number =>
-    subscriptions.push(["onDidChangeTextDocument", handle])
+    subscriptions.push(["onDidChangeTextDocument", handle]);
 
   vscodeMock.workspace.onDidCloseTextDocument = (handle: () => void): number =>
-    subscriptions.push(["onDidCloseTextDocument", handle])
+    subscriptions.push(["onDidCloseTextDocument", handle]);
 
   vscodeMock.workspace.createFileSystemWatcher = (): unknown => ({
     onDidChange: (handle: () => void): number =>
       subscriptions.push(["onDidChange", handle]),
     onDidCreate: () => null,
     onDidDelete: () => null,
-  })
+  });
 
   vscodeMock.workspace.getConfiguration = (): unknown => ({
     get: jest.fn(
       <T extends keyof PluginConfigurations>(name: `${string}.${T}`) => {
-        const nameWithoutPrefix = name.slice(packageName.length + 1) as T
+        const nameWithoutPrefix = name.slice(packageName.length + 1) as T;
 
         return options.configurations &&
           nameWithoutPrefix in options.configurations
           ? options.configurations[nameWithoutPrefix]
-          : DefaultPluginConfigurations[nameWithoutPrefix]
+          : DefaultPluginConfigurations[nameWithoutPrefix];
       },
     ),
-  })
+  });
 
   vscodeMock.languages.createDiagnosticCollection = jest.fn(() => ({
     clear: jest.fn(),
     delete: jest.fn(),
     set: (_uri: vscode.Uri, diags: vscode.Diagnostic[]): vscode.Diagnostic[] =>
       (diagnostics = diags),
-  }))
+  }));
 
-  vscodeMock.languages.getDiagnostics = (): vscode.Diagnostic[] => diagnostics
+  vscodeMock.languages.getDiagnostics = (): vscode.Diagnostic[] => diagnostics;
 
   vscodeMock.Range = class extends vscode.Range {
     public intersection(): Range | undefined {
       return options.selectFirsts !== undefined &&
         this.end.line + 1 <= options.selectFirsts
         ? this
-        : undefined
+        : undefined;
     }
-  }
+  };
 
-  const context = { subscriptions: { push: jest.fn() } }
+  const context = { subscriptions: { push: jest.fn() } };
 
-  activate(context as unknown as vscode.ExtensionContext)
+  activate(context as unknown as vscode.ExtensionContext);
 
   if (options.triggerChangeAfter === true) {
     subscriptions.find(
       (subscription) => subscription[0] === "onDidChangeTextDocument",
-    )?.[1]({ document })
+    )?.[1]({ document });
   }
 
   if (options.selectFirsts !== undefined) {
-    await new Promise(process.nextTick.bind(null))
+    await new Promise(process.nextTick.bind(null));
 
     actions = await new PackageJsonCodeActionProvider().provideCodeActions(
       document,
       new Range(0, 0, 0, 0),
-    )
+    );
 
     if (options.runAction !== undefined) {
       const command = commands.find(
         (commandInner) => commandInner[0] === options.runAction?.name,
-      )
+      );
 
-      command?.[1].apply(undefined, options.runAction.args!)
+      command?.[1].apply(undefined, options.runAction.args!);
     }
   }
 
-  await new Promise(process.nextTick.bind(null))
+  await new Promise(process.nextTick.bind(null));
 
   return {
     actions,
@@ -444,5 +443,5 @@ export const vscodeSimulator = async (options: SimulatorOptions = {}) => {
     document,
     subscriptions,
     windowsInformation,
-  }
+  };
 }

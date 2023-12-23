@@ -1,35 +1,29 @@
-import {
-  CodeActionKind,
-  commands,
-  type ExtensionContext,
-  languages,
-  type TextDocument,
-  window,
-} from "vscode"
+import { CodeActionKind, commands, languages, window } from "vscode";
 
-import { PackageJsonCodeActionProvider } from "./CodeAction"
+import { PackageJsonCodeActionProvider } from "./CodeAction";
 import {
   COMMAND_INSTALL,
   COMMAND_INSTALL_REQUEST,
   packageInstall,
   packageInstallRequest,
-} from "./Command"
-import { diagnosticSubscribe, generatePackagesDiagnostics } from "./Diagnostic"
-import { lazyCallback } from "./Utils"
+} from "./Command";
+import { diagnosticSubscribe, generatePackagesDiagnostics } from "./Diagnostic";
+import { lazyCallback } from "./Utils";
 
-// eslint-disable-next-line func-style
+import type { ExtensionContext, TextDocument } from "vscode";
+
 export function activate(context: ExtensionContext): void {
-  const diagnostics = languages.createDiagnosticCollection()
+  const diagnostics = languages.createDiagnosticCollection();
 
   diagnosticSubscribe(
     context,
     diagnostics,
     lazyCallback(async (document: TextDocument) => {
-      await generatePackagesDiagnostics(document, diagnostics)
+      await generatePackagesDiagnostics(document, diagnostics);
     }),
-  )
+  );
 
-  const outputChannel = window.createOutputChannel("npm Outdated")
+  const outputChannel = window.createOutputChannel("npm Outdated");
 
   context.subscriptions.push(
     diagnostics,
@@ -46,5 +40,5 @@ export function activate(context: ExtensionContext): void {
       new PackageJsonCodeActionProvider(),
       { providedCodeActionKinds: [CodeActionKind.QuickFix] },
     ),
-  )
+  );
 }

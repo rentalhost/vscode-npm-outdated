@@ -1,22 +1,21 @@
 import {
   CodeAction,
   CodeActionKind,
-  type CodeActionProvider,
   l10n,
   languages,
-  type Range,
-  type TextDocument,
   WorkspaceEdit,
-} from "vscode"
+} from "vscode";
 
-import { COMMAND_INSTALL_REQUEST } from "./Command"
-import { DiagnosticType, PackageRelatedDiagnostic } from "./Diagnostic"
-import { name as packageName } from "./plugin.json"
-import { hasMajorUpdateProtection } from "./Settings"
+import { COMMAND_INSTALL_REQUEST } from "./Command";
+import { DiagnosticType, PackageRelatedDiagnostic } from "./Diagnostic";
+import { name as packageName } from "./plugin.json";
+import { hasMajorUpdateProtection } from "./Settings";
 
-export const DIAGNOSTIC_ACTION = packageName
+import type { CodeActionProvider, Range, TextDocument } from "vscode";
 
-const VERSION_PREFIX_REGEXP = /^\s*([\^~=]|>=|<=)/
+export const DIAGNOSTIC_ACTION = packageName;
+
+const VERSION_PREFIX_REGEXP = /^\s*([\^~=]|>=|<=)/;
 
 export class PackageJsonCodeActionProvider implements CodeActionProvider {
   // eslint-disable-next-line class-methods-use-this
@@ -24,7 +23,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
     document: TextDocument,
     range: Range,
   ): Promise<CodeAction[]> {
-    const diagnosticsAll = languages.getDiagnostics(document.uri)
+    const diagnosticsAll = languages.getDiagnostics(document.uri);
 
     // Get all diagnostics from this extension.
     const diagnostics = diagnosticsAll.filter(
@@ -33,15 +32,15 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
         diagnostic.code.value === DIAGNOSTIC_ACTION &&
         (!PackageRelatedDiagnostic.is(diagnostic) ||
           diagnostic.type === DiagnosticType.GENERAL),
-    ) as PackageRelatedDiagnostic[]
+    ) as PackageRelatedDiagnostic[];
 
     // Checks if an CodeAction comes through a diagnostic.
     const diagnosticsSelected = diagnostics.filter(
       (diagnostic) => diagnostic.range.intersection(range) !== undefined,
-    )
+    );
 
     // Checks if there are any packages waiting to be installed.
-    let requiresInstallCount = 0
+    let requiresInstallCount = 0;
 
     for (const diagnostic of diagnosticsAll) {
       if (
@@ -49,10 +48,10 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
         diagnostic.type === DiagnosticType.READY_TO_INSTALL &&
         diagnostic.range.intersection(range) !== undefined
       ) {
-        requiresInstallCount++
+        requiresInstallCount++;
 
         if (requiresInstallCount >= 2) {
-          break
+          break;
         }
       }
     }
@@ -61,46 +60,45 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
       if (requiresInstallCount) {
         return Promise.all([
           createInstallAction(document, requiresInstallCount),
-        ])
+        ]);
       }
 
-      return []
+      return [];
     }
 
-    const diagnosticsPromises: Array<CodeAction | Promise<CodeAction>> = []
+    const diagnosticsPromises: Array<CodeAction | Promise<CodeAction>> = [];
 
-    let diagnosticsSelectedFiltered = diagnosticsSelected
+    let diagnosticsSelectedFiltered = diagnosticsSelected;
 
     // If only a single-line is selected or range accepts only one diagnostic then create a direct action for a specific package.
     // Else, it will be suggested to update all <number of> packages within range.
     if (diagnosticsSelected.length === 1) {
       diagnosticsPromises.push(
         createUpdateSingleAction(document, diagnosticsSelected[0]!),
-      )
+      );
     } else {
-      let updateWarning = ""
+      let updateWarning = "";
 
       // Ensures that we will not include major updates together with minor, if protection is enabled.
       if (hasMajorUpdateProtection()) {
-        const diagnosticsSelectedMajors: PackageRelatedDiagnostic[] = []
+        const diagnosticsSelectedMajors: PackageRelatedDiagnostic[] = [];
 
         for (const diagnosticSelected of diagnosticsSelected) {
           if (
-            // eslint-disable-next-line no-await-in-loop
             await diagnosticSelected.packageRelated.requiresVersionMajorUpdate()
           ) {
-            diagnosticsSelectedMajors.push(diagnosticSelected)
+            diagnosticsSelectedMajors.push(diagnosticSelected);
           }
         }
 
         if (diagnosticsSelectedMajors.length > 0) {
           if (diagnosticsSelectedMajors.length < diagnosticsSelected.length) {
-            updateWarning = ` (${l10n.t("excluding major")})`
+            updateWarning = ` (${l10n.t("excluding major")})`;
             diagnosticsSelectedFiltered = diagnosticsSelectedFiltered.filter(
               (diagnostic) => !diagnosticsSelectedMajors.includes(diagnostic),
-            )
+            );
           } else {
-            updateWarning = ` (${l10n.t("major")})`
+            updateWarning = ` (${l10n.t("major")})`;
           }
         }
       }
@@ -108,7 +106,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
       if (diagnosticsSelectedFiltered.length === 1) {
         diagnosticsPromises.push(
           createUpdateSingleAction(document, diagnosticsSelectedFiltered[0]!),
-        )
+        );
       } else {
         diagnosticsPromises.push(
           createUpdateManyAction(
@@ -119,7 +117,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
               diagnosticsSelectedFiltered.length,
             )}${updateWarning}`,
           ),
-        )
+        );
       }
     }
 
@@ -128,28 +126,27 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
       diagnostics.length > 1 &&
       diagnostics.length > diagnosticsSelectedFiltered.length
     ) {
-      let updateWarning = ""
-      let diagnosticsFiltered = diagnostics
+      let updateWarning = "";
+      let diagnosticsFiltered = diagnostics;
 
       // Ensures that we will not include major updates together with minor, if protection is enabled.
       if (hasMajorUpdateProtection()) {
-        const diagnosticsMajors: PackageRelatedDiagnostic[] = []
+        const diagnosticsMajors: PackageRelatedDiagnostic[] = [];
 
         for (const diagnostic of diagnostics) {
-          // eslint-disable-next-line no-await-in-loop
           if (await diagnostic.packageRelated.requiresVersionMajorUpdate()) {
-            diagnosticsMajors.push(diagnostic)
+            diagnosticsMajors.push(diagnostic);
           }
         }
 
         if (diagnosticsMajors.length > 0) {
           if (diagnosticsMajors.length < diagnostics.length) {
-            updateWarning = ` (${l10n.t("excluding major")})`
+            updateWarning = ` (${l10n.t("excluding major")})`;
             diagnosticsFiltered = diagnosticsFiltered.filter(
               (diagnostic) => !diagnosticsMajors.includes(diagnostic),
-            )
+            );
           } else {
-            updateWarning = ` (${l10n.t("major")})`
+            updateWarning = ` (${l10n.t("major")})`;
           }
         }
       }
@@ -164,42 +161,39 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
               diagnosticsFiltered.length,
             )}${updateWarning}`,
           ),
-        )
+        );
       }
     }
 
     if (requiresInstallCount) {
       diagnosticsPromises.push(
         createInstallAction(document, requiresInstallCount),
-      )
+      );
     }
 
-    return Promise.all(diagnosticsPromises)
+    return Promise.all(diagnosticsPromises);
   }
 }
 
-const createAction = async (
+async function createAction(
   document: TextDocument,
   message: string,
   diagnostics: PackageRelatedDiagnostic[],
   isPreferred?: boolean,
-): Promise<CodeAction> => {
-  const edit = new WorkspaceEdit()
-  const action = new CodeAction(message, CodeActionKind.QuickFix)
+): Promise<CodeAction> {
+  const edit = new WorkspaceEdit();
+  const action = new CodeAction(message, CodeActionKind.QuickFix);
 
-  action.edit = edit
-  action.diagnostics = diagnostics
-  action.isPreferred = isPreferred
+  action.edit = edit;
+  action.diagnostics = diagnostics;
+  action.isPreferred = isPreferred;
 
-  let requiresUpdate = false
+  let requiresUpdate = false;
 
   for (const diagnostic of diagnostics) {
-    if (
-      // eslint-disable-next-line no-await-in-loop
-      !(await diagnostic.packageRelated.isVersionLatestAlreadyInstalled())
-    ) {
-      requiresUpdate = true
-      break
+    if (!(await diagnostic.packageRelated.isVersionLatestAlreadyInstalled())) {
+      requiresUpdate = true;
+      break;
     }
   }
 
@@ -208,38 +202,38 @@ const createAction = async (
       arguments: [document],
       command: COMMAND_INSTALL_REQUEST,
       title: "update",
-    }
+    };
   }
 
-  return action
+  return action;
 }
 
-const createUpdateManyAction = async (
+async function createUpdateManyAction(
   document: TextDocument,
   diagnostics: PackageRelatedDiagnostic[],
   message: string,
-): Promise<CodeAction> => {
-  const action = await createAction(document, message, diagnostics)
+): Promise<CodeAction> {
+  const action = await createAction(document, message, diagnostics);
 
   await Promise.all(
     diagnostics.map(async (diagnostic) =>
       updatePackageVersion(action, document, diagnostic),
     ),
-  )
+  );
 
-  return action
+  return action;
 }
 
-const createUpdateSingleAction = async (
+async function createUpdateSingleAction(
   document: TextDocument,
   diagnostic: PackageRelatedDiagnostic,
-): Promise<CodeAction> => {
-  const versionLatest = await diagnostic.packageRelated.getVersionLatest()
+): Promise<CodeAction> {
+  const versionLatest = await diagnostic.packageRelated.getVersionLatest();
   const updateWarning =
     hasMajorUpdateProtection() &&
     (await diagnostic.packageRelated.requiresVersionMajorUpdate())
       ? ` (${l10n.t("major")})`
-      : ""
+      : "";
 
   const action = createAction(
     document,
@@ -250,49 +244,49 @@ const createUpdateSingleAction = async (
     )}${updateWarning}`,
     [diagnostic],
     true,
-  )
+  );
 
-  await updatePackageVersion(await action, document, diagnostic)
+  await updatePackageVersion(await action, document, diagnostic);
 
-  return action
+  return action;
 }
 
-const createInstallAction = (
+function createInstallAction(
   document: TextDocument,
   requiresInstallCount: number,
-): CodeAction => {
+): CodeAction {
   const action = new CodeAction(
     requiresInstallCount === 1
       ? l10n.t("Install package")
       : l10n.t("Install packages"),
     CodeActionKind.QuickFix,
-  )
+  );
 
   action.command = {
     arguments: [document],
     command: COMMAND_INSTALL_REQUEST,
     title: "update",
-  }
+  };
 
-  return action
+  return action;
 }
 
-const updatePackageVersion = async (
+async function updatePackageVersion(
   action: CodeAction,
   document: TextDocument,
   diagnostic: PackageRelatedDiagnostic,
-): Promise<void> => {
+): Promise<void> {
   const line = document.lineAt(diagnostic.range.start.line),
     version = line.text.slice(
       diagnostic.range.start.character,
       diagnostic.range.end.character,
     ),
     versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.[1] ?? "",
-    versionUpdated = await diagnostic.packageRelated.getVersionLatest()
+    versionUpdated = await diagnostic.packageRelated.getVersionLatest();
 
   action.edit?.replace(
     document.uri,
     diagnostic.range,
     versionPrefix + versionUpdated,
-  )
+  );
 }

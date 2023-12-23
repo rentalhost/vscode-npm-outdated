@@ -1,16 +1,18 @@
-import { commands, type DocumentSymbol, Range, type TextDocument } from "vscode"
+import { commands, Range } from "vscode";
 
-import { PackageInfo } from "./PackageInfo"
-import { waitUntil } from "./Utils"
+import { PackageInfo } from "./PackageInfo";
+import { waitUntil } from "./Utils";
+
+import type { DocumentSymbol, TextDocument } from "vscode";
 
 // Process packages of a certain dependency type (eg from "dependencies" and "devDependencies").
 // Returns existing packages, their versions and the package range.
-const mapDependencyRange = (
+function mapDependencyRange(
   document: TextDocument,
   documentSymbol: DocumentSymbol | undefined,
-): PackageInfo[] => {
+): PackageInfo[] {
   if (!documentSymbol || documentSymbol.children.length === 0) {
-    return []
+    return [];
   }
 
   return documentSymbol.children.map(
@@ -27,37 +29,37 @@ const mapDependencyRange = (
           child.range.end.character - 1,
         ),
       ),
-  )
+  );
 }
 
-export type DocumentsPackagesInterface = Record<string, PackageInfo>
+export type DocumentsPackagesInterface = Record<string, PackageInfo>;
 
 // Gets an array of packages used in the document, regardless of dependency type.
-export const getDocumentPackages = async (
+export async function getDocumentPackages(
   document: TextDocument,
-): Promise<DocumentsPackagesInterface> => {
-  let symbols: DocumentSymbol[] | undefined
+): Promise<DocumentsPackagesInterface> {
+  let symbols: DocumentSymbol[] | undefined;
 
   await waitUntil(async () => {
     symbols = await commands.executeCommand(
       "vscode.executeDocumentSymbolProvider",
       document.uri,
-    )
+    );
 
-    return symbols !== undefined
-  }, 33)
+    return symbols !== undefined;
+  }, 33);
 
   const symbolDependencies = symbols?.find(
       (symbol) => symbol.name === "dependencies",
     ),
     symbolDevelopmentDependencies = symbols?.find(
       (symbol) => symbol.name === "devDependencies",
-    )
+    );
 
   return Object.fromEntries(
     [
       ...mapDependencyRange(document, symbolDependencies),
       ...mapDependencyRange(document, symbolDevelopmentDependencies),
     ].map((documentPackage) => [documentPackage.name, documentPackage]),
-  )
+  );
 }
