@@ -56,6 +56,7 @@ const DefaultPluginConfigurations: PluginConfigurations = {
 interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
 }
 
 interface SimulatorOptions {
@@ -321,6 +322,15 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
         symbols.push({
           children: dependenciesAsChildren(options.packageJson.devDependencies),
           name: "devDependencies",
+        });
+      }
+
+      if (options.packageJson.peerDependencies) {
+        symbols.push({
+          children: dependenciesAsChildren(
+            options.packageJson.peerDependencies,
+          ),
+          name: "peerDependencies",
         });
       }
 

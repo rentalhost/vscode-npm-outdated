@@ -5,7 +5,7 @@ import { waitUntil } from "./Utils";
 
 import type { DocumentSymbol, TextDocument } from "vscode";
 
-// Process packages of a certain dependency type (eg from "dependencies" and "devDependencies").
+// Process packages of a certain dependency type.
 // Returns existing packages, their versions and the package range.
 function mapDependencyRange(
   document: TextDocument,
@@ -49,17 +49,20 @@ export async function getDocumentPackages(
     return symbols !== undefined;
   }, 33);
 
-  const symbolDependencies = symbols?.find(
-      (symbol) => symbol.name === "dependencies",
-    ),
-    symbolDevelopmentDependencies = symbols?.find(
-      (symbol) => symbol.name === "devDependencies",
-    );
-
   return Object.fromEntries(
     [
-      ...mapDependencyRange(document, symbolDependencies),
-      ...mapDependencyRange(document, symbolDevelopmentDependencies),
+      ...mapDependencyRange(
+        document,
+        symbols?.find((symbol) => symbol.name === "dependencies"),
+      ),
+      ...mapDependencyRange(
+        document,
+        symbols?.find((symbol) => symbol.name === "devDependencies"),
+      ),
+      ...mapDependencyRange(
+        document,
+        symbols?.find((symbol) => symbol.name === "peerDependencies"),
+      ),
     ].map((documentPackage) => [documentPackage.name, documentPackage]),
   );
 }

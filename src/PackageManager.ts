@@ -179,6 +179,7 @@ function getPackagesInstalledEntries(
   const dependencies: NPMDependencies = {
     ...packages.dependencies,
     ...packages.devDependencies,
+    ...packages.peerDependencies,
   };
 
   if (Object.keys(dependencies).length > 0) {
