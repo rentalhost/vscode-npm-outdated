@@ -1017,4 +1017,25 @@ describe("security advisories", () => {
     expect(diagnostics).toHaveLength(0);
     expect(decorations[0]).toContain(Icons.CHECKED);
   });
+
+  it("valid dependency, newer version available (pnpm issue #7514)", async () => {
+    expect.assertions(2);
+
+    const { decorations, diagnostics } = await vscodeSimulator({
+      packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
+      packageManager: PackageManager.PNPM,
+      packagesInstalled: `pnpm issue printing message before JSON\n${JSON.stringify(
+        [
+          {
+            name: "test",
+            dependencies: { "npm-outdated": { version: "1.0.0" } },
+          },
+        ],
+      )}`,
+      packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
+    });
+
+    expect(diagnostics[0]?.message).toContain("Newer version");
+    expect(decorations[0]).toContain("Update available:");
+  });
 });

@@ -72,7 +72,7 @@ interface SimulatorOptions {
 
   packagesAdvisories?: Record<string, PackageAdvisory[]>;
 
-  packagesInstalled?: Record<string, string>;
+  packagesInstalled?: Record<string, string> | string;
 
   packagesRepository?: Record<string, string[]>;
 
@@ -215,19 +215,20 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
     if (
       command === "npm ls --json --depth=0" &&
-      options.packagesInstalled &&
+      options.packagesInstalled !== undefined &&
       packageManager === PackageManager.NPM
     ) {
       callbackReal(
         null,
-        JSON.stringify({
-          dependencies: Object.fromEntries(
-            Object.entries(options.packagesInstalled).map(([name, version]) => [
-              name,
-              { version },
-            ]),
-          ),
-        }),
+        typeof options.packagesInstalled === "string"
+          ? options.packagesInstalled
+          : JSON.stringify({
+              dependencies: Object.fromEntries(
+                Object.entries(options.packagesInstalled).map(
+                  ([name, version]) => [name, { version }],
+                ),
+              ),
+            }),
       );
 
       return;
@@ -235,20 +236,22 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
     if (
       command === "pnpm ls --json --depth=0" &&
-      options.packagesInstalled &&
+      options.packagesInstalled !== undefined &&
       packageManager === PackageManager.PNPM
     ) {
       callbackReal(
         null,
-        JSON.stringify([
-          {
-            dependencies: Object.fromEntries(
-              Object.entries(options.packagesInstalled).map(
-                ([name, version]) => [name, { version }],
-              ),
-            ),
-          },
-        ]),
+        typeof options.packagesInstalled === "string"
+          ? options.packagesInstalled
+          : JSON.stringify([
+              {
+                dependencies: Object.fromEntries(
+                  Object.entries(options.packagesInstalled).map(
+                    ([name, version]) => [name, { version }],
+                  ),
+                ),
+              },
+            ]),
       );
 
       return;

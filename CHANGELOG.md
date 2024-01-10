@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.1 - 10/01/2024
+
+- Fixes an issue when `pnpm` generates a "WARN" next to the expected JSON;
+
 ## 3.1.0 - 23/12/2023
 
 - Added support to `peerDependencies`;

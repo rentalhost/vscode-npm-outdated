@@ -201,6 +201,26 @@ export const packagesInstalledCaches = new Map<
   Cache<Promise<PackagesInstalled | undefined>>
 >();
 
+// Parse a JSON string and return an object of type T.
+// It tries to parse the string starting from the beginning and,
+// if that fails, continues to try parsing from each newline character
+// until it either succeeds or runs out of new data to parse.
+export function parseJSON<T>(data: string): T {
+  let dataOffset = 0;
+
+  while (dataOffset !== -1) {
+    try {
+      return JSON.parse(data.slice(dataOffset)) as T;
+    } catch {
+      /* empty */
+    }
+
+    dataOffset = data.indexOf("\n", dataOffset + 1);
+  }
+
+  throw new Error("invalid JSON response");
+}
+
 // Returns packages installed by the user and their respective versions.
 export async function getPackagesInstalled(
   document: TextDocument,
@@ -222,7 +242,7 @@ export async function getPackagesInstalled(
       exec("pnpm ls --json --depth=0", { cwd }, (_error, stdout) => {
         if (stdout) {
           try {
-            const execResult = JSON.parse(stdout) as [NPMListResponse];
+            const execResult = parseJSON<[NPMListResponse]>(stdout);
 
             if (Array.isArray(execResult)) {
               const packagesInstalled = getPackagesInstalledEntries(
@@ -250,7 +270,7 @@ export async function getPackagesInstalled(
       if (stdout) {
         try {
           const packagesInstalled = getPackagesInstalledEntries(
-            JSON.parse(stdout) as NPMListResponse,
+            parseJSON(stdout),
           );
 
           if (packagesInstalled !== null) {
