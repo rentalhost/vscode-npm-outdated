@@ -10,6 +10,14 @@ export function getLevel(): ReleaseType {
   return workspace.getConfiguration().get<ReleaseType>(`${packageName}.level`)!;
 }
 
+// Retrieves the action for the "Do it for me!" feature based on the current configuration.
+// Default: "install".
+export function getDoItForMeAction() {
+  return workspace
+    .getConfiguration()
+    .get<"install" | "update">(`${packageName}.doItForMeAction`)!;
+}
+
 // Avoid suggesting that a package be upgraded to a `major` version directly.
 // Default: true.
 export function hasMajorUpdateProtection(): boolean {

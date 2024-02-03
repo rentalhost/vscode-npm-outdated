@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { commands, l10n, window } from "vscode";
 
 import { name as packageName } from "./plugin.json";
+import { getDoItForMeAction } from "./Settings";
 
 import type { OutputChannel, TextDocument } from "vscode";
 
@@ -20,9 +21,13 @@ export async function packageInstallRequest(
   );
 
   const action = l10n.t("Do it for me!");
+  const actionCommand = getDoItForMeAction();
+
   const result = await window.showInformationMessage(
     l10n.t(
-      "Save your package.json and run your package manager install command to finish updating packages.",
+      actionCommand === "install"
+        ? "Save your package.json and run your package manager install command to finish updating packages."
+        : "Save your package.json and run your package manager update command to finish updating packages.",
     ),
     action,
   );
@@ -32,7 +37,7 @@ export async function packageInstallRequest(
 
     void commands.executeCommand(
       COMMAND_INSTALL,
-      `${packageManager} install`,
+      `${packageManager} ${actionCommand}`,
       dirname(document.uri.fsPath),
     );
   }
@@ -45,7 +50,11 @@ export function packageInstall(
 ): void {
   outputChannel.clear();
   outputChannel.show();
-  outputChannel.append(`${l10n.t("Installing selected packages...")}\n\n---\n`);
+  outputChannel.append(
+    `${l10n.t(
+      "Installing selected packages...",
+    )}\n\n---\n\n${command}\n\n---\n`,
+  );
 
   const process = exec(command, { cwd });
 

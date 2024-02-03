@@ -4,6 +4,10 @@
   "npm-outdated.configuration.level.minor.description": "It will only display an update notice when there is a minor version update (eg from 1.0.0 to 1.1.0).",
   "npm-outdated.configuration.level.patch.description": "It will only display an update notice when there is a patch version update (eg from 1.0.0 to 1.0.1).",
 
+  "npm-outdated.configuration.doItForMeAction.description": "What should be done when clicking the update action button.",
+  "npm-outdated.configuration.doItForMeAction.install.description": "Execute the `install` command of the dependency manager.",
+  "npm-outdated.configuration.doItForMeAction.update.description": "Execute the `update` command of the dependency manager.",
+
   "npm-outdated.configuration.majorUpdateProtection.description": "Avoid suggesting that a package be upgraded to a `major` version directly. The suggestion will only happen if the user-defined version is the latest `minor` version available.",
 
   "npm-outdated.configuration.identifySecurityAdvisories.description": "Identifies packages used with known security advisories.",

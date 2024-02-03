@@ -4,6 +4,10 @@
   "npm-outdated.configuration.level.minor.description": "Somente exibirá um aviso de atualização quando houver uma atualização para versão minor (ex. de 1.0.0 para 1.1.0).",
   "npm-outdated.configuration.level.patch.description": "Somente exibirá um aviso de atualização quando houver uma atualização para versão patch (ex. de 1.0.0 para 1.0.1).",
 
+  "npm-outdated.configuration.doItForMeAction.description": "O que deverá ser feito ao clicar no botão de atualização.",
+  "npm-outdated.configuration.doItForMeAction.install.description": "Executar o comando `install` do gerenciador de dependências.",
+  "npm-outdated.configuration.doItForMeAction.update.description": "Executar o comando `update` do gerenciador de dependências.",
+
   "npm-outdated.configuration.majorUpdateProtection.description": "Evita que uma dependência possa atualizar para uma versão `major` diretamente. Uma sugestão deste tipo só acontecerá se a versão definida pelo usuário já estiver na última versão `minor` disponível.",
 
   "npm-outdated.configuration.identifySecurityAdvisories.description": "Identifica as dependências utilizadas com avisos de segurança conhecidos.",
