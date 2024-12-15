@@ -16,7 +16,7 @@ import type { ReleaseType } from "semver";
 import type { Range, TextDocument } from "vscode";
 
 const PACKAGE_NAME_REGEXP =
-  /^(?:@[a-z\d-][a-z\d\-._]*\/)?[a-z\d-][a-z\d\-._]*$/;
+  /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/;
 
 const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/;
 
@@ -24,7 +24,7 @@ const PACKAGE_VERSION_PATH_REGEXP = /^(?:\.\.?|~)?\//;
 
 const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/;
 
-const PACKAGE_VERSION_GITHUB_REGEX = /^[a-z\d][\w-]*[a-z\d]\//i;
+const PACKAGE_VERSION_GITHUB_REGEX = /^[\da-z][\w-]*[\da-z]\//i;
 
 const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
   major: 2,

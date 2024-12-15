@@ -1,5 +1,6 @@
-import { PackageAdvisory } from "./PackageManager";
 import { cacheEnabled, fetchLite, lazyCallback, promiseLimit } from "./Utils";
+
+import type { PackageAdvisory } from "./PackageManager";
 
 const TIMER_MULTIPLIER = 3;
 

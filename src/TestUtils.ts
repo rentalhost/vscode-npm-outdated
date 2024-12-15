@@ -24,7 +24,6 @@ jest.mock("./Utils", () => ({
 
   promiseLimit:
     () =>
-    // eslint-disable-next-line unicorn/consistent-function-scoping
     <T extends () => unknown>(callback: T): unknown =>
       callback(),
 
@@ -161,7 +160,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
           const lineIndex = line.range.start.line;
 
           decorations[lineIndex] ??= [];
-          decorations[lineIndex]!.push(
+          decorations[lineIndex].push(
             String(line.renderOptions?.after?.contentText),
           );
         }

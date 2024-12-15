@@ -30,7 +30,6 @@ export function lazyCallback<T, A>(
       // If no callback is running right now, then run the current one immediately.
       isRunning = true;
 
-      // eslint-disable-next-line unicorn/prefer-ternary
       if (wait === 0) {
         await callback(...arguments_);
       } else {

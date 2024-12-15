@@ -15,10 +15,9 @@ import type { CodeActionProvider, Range, TextDocument } from "vscode";
 
 export const DIAGNOSTIC_ACTION = packageName;
 
-const VERSION_PREFIX_REGEXP = /^\s*([\^~=]|>=|<=)/;
+const VERSION_PREFIX_REGEXP = /^\s*([=^~]|>=|<=)/;
 
 export class PackageJsonCodeActionProvider implements CodeActionProvider {
-  // eslint-disable-next-line class-methods-use-this
   public async provideCodeActions(
     document: TextDocument,
     range: Range,
@@ -276,13 +275,13 @@ async function updatePackageVersion(
   document: TextDocument,
   diagnostic: PackageRelatedDiagnostic,
 ): Promise<void> {
-  const line = document.lineAt(diagnostic.range.start.line),
-    version = line.text.slice(
-      diagnostic.range.start.character,
-      diagnostic.range.end.character,
-    ),
-    versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.[1] ?? "",
-    versionUpdated = await diagnostic.packageRelated.getVersionLatest();
+  const line = document.lineAt(diagnostic.range.start.line);
+  const version = line.text.slice(
+    diagnostic.range.start.character,
+    diagnostic.range.end.character,
+  );
+  const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.[1] ?? "";
+  const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
 
   action.edit?.replace(
     document.uri,

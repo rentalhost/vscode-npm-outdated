@@ -1,5 +1,12 @@
 /* eslint-disable vitest/require-hook */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+import { DiagnosticSeverity } from "vscode";
+
+import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "./Command";
+import { PackageManager } from "./PackageManager";
+import { vscodeSimulator } from "./TestUtils";
+import { Icons } from "./Theme";
+
 jest.mock("node:child_process", () => ({
   __esModule: true,
   ...jest.requireActual("node:child_process"),
@@ -9,13 +16,6 @@ jest.mock("node:fs", () => ({
   __esModule: true,
   ...jest.requireActual("node:fs"),
 }));
-
-import { DiagnosticSeverity } from "vscode";
-
-import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "./Command";
-import { PackageManager } from "./PackageManager";
-import { vscodeSimulator } from "./TestUtils";
-import { Icons } from "./Theme";
 
 describe("package diagnostics", () => {
   it("initialization without a package.json", async () => {
