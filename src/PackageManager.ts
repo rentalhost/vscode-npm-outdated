@@ -15,68 +15,12 @@ const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/;
 
 type PackagesVersions = Map<string, Cache<Promise<string[] | null>>>;
 
-export const enum PackageManager {
-  NPM,
-  PNPM,
-  NONE,
-}
-
 interface NPMRegistryPackage {
   versions?: Record<string, unknown>;
 }
 
 // The `npm view` cache.
 const packagesCache: PackagesVersions = new Map();
-
-// Get all package versions through `npm view` command.
-export async function getPackageVersions(
-  name: string,
-): Promise<string[] | null> {
-  // If the package query is in the cache (even in the process of being executed), return it.
-  // This ensures that we will not have duplicate execution process while it is within lifetime.
-  if (cacheEnabled()) {
-    const cachePackages = packagesCache.get(name);
-
-    if (cachePackages?.isValid(getCacheLifetime()) === true) {
-      return cachePackages.value;
-    }
-  }
-
-  // We'll use Registry NPM to get the versions directly from the source.
-  // This avoids loading processes via `npm view`.
-  // The process is cached if it is triggered quickly, within lifetime.
-  const execPromise = fetchLite<NPMRegistryPackage>({
-    url: `https://registry.npmjs.org/${name}`,
-    acceptSimplified: true,
-  }).then(async (data): Promise<string[] | null> => {
-    if (data?.versions) {
-      return Object.keys(data.versions);
-    }
-
-    // Uses `npm view` as a fallback.
-    // This usually happens when the package needs authentication.
-    // In this case, we'll let `npm` handle it directly.
-    return new Promise((resolve) => {
-      exec(`npm view --json ${name} versions`, (error, stdout) => {
-        if (!error) {
-          try {
-            resolve(JSON.parse(stdout) as string[] | null);
-
-            return;
-          } catch {
-            /* empty */
-          }
-        }
-
-        resolve(null);
-      });
-    });
-  });
-
-  packagesCache.set(name, new Cache(execPromise));
-
-  return execPromise;
-}
 
 type NPMDependencies = Record<string, { version: string }>;
 
@@ -85,8 +29,6 @@ interface NPMListResponse {
   devDependencies?: NPMDependencies;
   peerDependencies?: NPMDependencies;
 }
-
-export type PackagesInstalled = Record<string, string | undefined>;
 
 const packageManagerExecCache = new Cache<Record<string, boolean>>({});
 
@@ -119,61 +61,6 @@ async function supportsPackageManager(
   });
 }
 
-export const packageManagerCaches = new Map<
-  string,
-  Cache<PackageManager | undefined>
->();
-
-// Return the current Package Manager.
-export async function getPackageManager(
-  document: TextDocument,
-): Promise<PackageManager> {
-  const cwd = dirname(document.uri.fsPath);
-
-  if (cacheEnabled()) {
-    const packageManagerCache = packageManagerCaches.get(cwd);
-
-    if (
-      packageManagerCache?.value !== undefined &&
-      packageManagerCache.isValid(getCacheLifetime())
-    ) {
-      return packageManagerCache.value;
-    }
-  }
-
-  let packageManager: PackageManager;
-
-  // Using PNPM with already installed node_modules/ directory.
-  if (
-    existsSync(`${cwd}/node_modules/.pnpm`) &&
-    (await supportsPackageManager(document, "pnpm"))
-  ) {
-    packageManager = PackageManager.PNPM;
-  }
-
-  // Not installed node_modules/ but pnpm-lock.yaml is present.
-  else if (
-    existsSync(`${cwd}/pnpm-lock.yaml`) &&
-    (await supportsPackageManager(document, "pnpm"))
-  ) {
-    packageManager = PackageManager.PNPM;
-  }
-
-  // In last case, check for NPM.
-  else if (await supportsPackageManager(document, "npm")) {
-    packageManager = PackageManager.NPM;
-  }
-
-  // None available Package Manager supported.
-  else {
-    packageManager = PackageManager.NONE;
-  }
-
-  packageManagerCaches.set(cwd, new Cache(packageManager));
-
-  return packageManager;
-}
-
 function getPackagesInstalledEntries(
   packages: NPMListResponse,
 ): PackagesInstalled | null {
@@ -196,6 +83,113 @@ function getPackagesInstalledEntries(
   return null;
 }
 
+const packagesAdvisoriesCache = new Map<string, Cache<PackageAdvisory[]>>();
+
+// Get all package versions through `npm view` command.
+export async function getPackageVersions(
+  name: string,
+): Promise<string[] | null> {
+  // If the package query is in the cache (even in the process of being executed), return it.
+  // This ensures that we will not have duplicate execution process while it is within lifetime.
+  if (cacheEnabled()) {
+    const cachePackages = packagesCache.get(name);
+
+    if (cachePackages?.isValid(getCacheLifetime()) === true) {
+      return cachePackages.value;
+    }
+  }
+
+  // We'll use Registry NPM to get the versions directly from the source.
+  // This avoids loading processes via `npm view`.
+  // The process is cached if it is triggered quickly, within lifetime.
+  const execPromise = fetchLite<NPMRegistryPackage>({
+    acceptSimplified: true,
+    url: `https://registry.npmjs.org/${name}`,
+  }).then(async (data): Promise<string[] | null> => {
+    if (data?.versions) {
+      return Object.keys(data.versions);
+    }
+
+    // Uses `npm view` as a fallback.
+    // This usually happens when the package needs authentication.
+    // In this case, we'll let `npm` handle it directly.
+    return new Promise((resolve) => {
+      exec(`npm view --json ${name} versions`, (error, stdout) => {
+        if (!error) {
+          try {
+            resolve(JSON.parse(stdout) as string[] | null);
+
+            return;
+          } catch {
+            /* empty */
+          }
+        }
+
+        resolve(null);
+      });
+    });
+  });
+
+  packagesCache.set(name, new Cache(execPromise));
+
+  return execPromise;
+}
+
+export type PackagesInstalled = Record<string, string | undefined>;
+
+export const packageManagerCaches = new Map<
+  string,
+  Cache<PackageManager | undefined>
+>();
+
+// Return the current Package Manager.
+export async function getPackageManager(
+  document: TextDocument,
+): Promise<PackageManager> {
+  const cwd = dirname(document.uri.fsPath);
+
+  if (cacheEnabled()) {
+    const packageManagerCache = packageManagerCaches.get(cwd);
+
+    if (
+      packageManagerCache?.value !== undefined &&
+      packageManagerCache.isValid(getCacheLifetime())
+    ) {
+      return packageManagerCache.value;
+    }
+  }
+
+  function setPackageManager(packageManager: PackageManager) {
+    packageManagerCaches.set(cwd, new Cache(packageManager));
+
+    return packageManager;
+  }
+
+  // Using PNPM with already installed node_modules/ directory.
+  if (
+    existsSync(`${cwd}/node_modules/.pnpm`) &&
+    (await supportsPackageManager(document, "pnpm"))
+  ) {
+    return setPackageManager(PackageManager.PNPM);
+  }
+
+  // Not installed node_modules/ but pnpm-lock.yaml is present.
+  else if (
+    existsSync(`${cwd}/pnpm-lock.yaml`) &&
+    (await supportsPackageManager(document, "pnpm"))
+  ) {
+    return setPackageManager(PackageManager.PNPM);
+  }
+
+  // In last case, check for NPM.
+  else if (await supportsPackageManager(document, "npm")) {
+    return setPackageManager(PackageManager.NPM);
+  }
+
+  // None available Package Manager supported.
+  return setPackageManager(PackageManager.NONE);
+}
+
 export const packagesInstalledCaches = new Map<
   string,
   Cache<Promise<PackagesInstalled | undefined>>
@@ -205,6 +199,7 @@ export const packagesInstalledCaches = new Map<
 // It tries to parse the string starting from the beginning and,
 // if that fails, continues to try parsing from each newline character
 // until it either succeeds or runs out of new data to parse.
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function parseJSON<T>(data: string): T {
   let dataOffset = 0;
 
@@ -297,45 +292,51 @@ export interface PackageAdvisory {
   severity: string;
   title: string;
   url: string;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   vulnerable_versions: string;
 }
 
 export type PackagesAdvisories = Map<string, PackageAdvisory[]>;
 
-const packagesAdvisoriesCache = new Map<string, Cache<PackageAdvisory[]>>();
-
 // Returns packages with known security advisories.
 export async function getPackagesAdvisories(
   packagesInfos: PackageInfo[],
 ): Promise<PackagesAdvisories | undefined> {
-  const packages: Record<string, string[]> = {};
-
-  for (const packageInfo of packagesInfos) {
-    if (packageInfo.name) {
-      // If already cached, so we keep the latest results.
-      // As it is already stored, then we ignore this package from the next fetch.
+  const packages = await Promise.allSettled(
+    packagesInfos.map(async (packageInfo) => {
       if (
+        !packageInfo.name ||
         !packageInfo.isNameValid() ||
         packageInfo.isVersionComplex() ||
         packagesAdvisoriesCache
           .get(packageInfo.name)
           ?.isValid(getCacheLifetime()) === true
       ) {
-        continue;
+        throw new Error();
       }
 
       // We need to push all versions to the NPM Registry.
       // Thus, we can check in real time when the package version is modified by the user.
-      const packageVersions = await getPackageVersions(packageInfo.name);
+      return getPackageVersions(packageInfo.name).then((packageVersions) => {
+        if (!packageVersions) {
+          throw new Error();
+        }
 
-      // Add to be requested.
-      if (packageVersions) {
-        packages[packageInfo.name] = packageVersions.filter(
-          (packageVersion) => prerelease(packageVersion) === null,
-        );
-      }
-    }
-  }
+        return [
+          packageInfo.name,
+          packageVersions.filter(
+            (packageVersion) => prerelease(packageVersion) === null,
+          ),
+        ] as const;
+      });
+    }),
+  ).then((results) =>
+    Object.fromEntries(
+      results
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value),
+    ),
+  );
 
   if (Object.keys(packages).length > 0) {
     // Query advisories through the NPM Registry.
@@ -370,4 +371,10 @@ export async function getPackagesAdvisories(
       ([packageName, packageAdvisory]) => [packageName, packageAdvisory.value],
     ),
   );
+}
+
+export const enum PackageManager {
+  NPM,
+  PNPM,
+  NONE,
 }

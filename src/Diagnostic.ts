@@ -16,12 +16,9 @@ import {
   workspace,
 } from "vscode";
 
-import { DIAGNOSTIC_ACTION } from "./CodeAction";
 import { getDocumentPackages } from "./Document";
-import {
-  DocumentDecoration,
-  DocumentDecorationManager,
-} from "./DocumentDecoration";
+import { DocumentDecoration } from "./DocumentDecoration";
+import { DocumentDecorationManager } from "./DocumentDecorationManager";
 import { DocumentDiagnostics } from "./DocumentDiagnostics";
 import {
   getPackageManager,
@@ -36,7 +33,7 @@ import {
   getParallelProcessesLimit,
   identifySecurityAdvisories,
 } from "./Settings";
-import { Icons } from "./Theme";
+import { icons } from "./Theme";
 import { promiseLimit } from "./Utils";
 
 import type { PackageInfo } from "./PackageInfo";
@@ -54,11 +51,115 @@ function isPackageJsonDocument(document: TextDocument): boolean {
   return document.fileName.endsWith(`${sep}package.json`);
 }
 
+// Notifies you of potential security advisory issues.
+async function detectAdvisoryDiagnostics(
+  packagesAdvisories: PackagesAdvisories,
+  packageInfo: PackageInfo,
+  documentDecorations: DocumentDecoration | undefined,
+  documentDiagnostics: DocumentDiagnostics,
+): Promise<void> {
+  const packageAdvisories = packagesAdvisories.get(packageInfo.name);
+
+  if (!packageAdvisories) {
+    return;
+  }
+
+  const versionNormalized = packageInfo.getVersionNormalized();
+
+  if (versionNormalized === undefined) {
+    return;
+  }
+
+  const packageAdvisory = packageAdvisories.find((advisory) =>
+    intersects(advisory.vulnerable_versions, versionNormalized),
+  );
+
+  if (packageAdvisory) {
+    // If there is any advisory for the package, update the decoration.
+    documentDecorations?.setAdvisoryMessage(packageInfo, packageAdvisory);
+
+    const advisoryMessages = [
+      icons.advisory,
+      l10n.t(
+        "Security advisory: this package version has a known flaw of level {0}/{1}.",
+        packageAdvisory.severity.toUpperCase(),
+        packageAdvisory.cvss.score.toFixed(1),
+      ),
+    ];
+
+    // Filters available versions that are not affected by any type of advisory.
+    const versionsNotAffected = (await packageInfo.getVersions())!.filter(
+      (packageVersion) => {
+        if (prerelease(packageVersion)) {
+          return false;
+        }
+
+        for (const advisory of packageAdvisories) {
+          if (satisfies(packageVersion, advisory.vulnerable_versions)) {
+            return false;
+          }
+        }
+
+        return true;
+      },
+    );
+
+    // Gets the closest possible future version that does not have the problem.
+    const versionFutureNotAffected = minSatisfying(
+      versionsNotAffected,
+      `>${versionNormalized}`,
+    );
+
+    if (versionFutureNotAffected === null) {
+      advisoryMessages.push(l10n.t("No fix available yet."));
+
+      // If there is no future version available then it suggests a downgrade.
+      // Gets the largest available version in which a flaw does not exist.
+      const versionPastNotAffected = maxSatisfying(
+        versionsNotAffected,
+        `<${versionNormalized}`,
+      );
+
+      if (versionPastNotAffected !== null) {
+        advisoryMessages.push(
+          l10n.t(
+            "If possible, downgrade to version {0}.",
+            versionPastNotAffected,
+          ),
+        );
+      }
+    } else {
+      advisoryMessages.push(
+        l10n.t(
+          "Please upgrade to version {0} or higher.",
+          versionFutureNotAffected,
+        ),
+      );
+    }
+
+    advisoryMessages.push(`(${packageName})`);
+
+    // And adds a new diagnostic.
+    const diagnostic = new Diagnostic(
+      packageInfo.versionRange,
+      advisoryMessages.join(" "),
+      DiagnosticSeverity.Error,
+    );
+
+    diagnostic.code = {
+      target: Uri.parse(packageAdvisory.url),
+      value: l10n.t("Details"),
+    };
+
+    documentDiagnostics.push(diagnostic);
+  }
+}
+
 export function diagnosticSubscribe(
   context: ExtensionContext,
   diagnostics: DiagnosticCollection,
   onChange: (document: TextDocument) => void,
-): void {
+) {
   // Handles the active editor change, but only continues with package.json files.
   function handleChange(document: TextDocument): void {
     if (isPackageJsonDocument(document)) {
@@ -140,7 +241,7 @@ export class PackageRelatedDiagnostic extends Diagnostic {
   ) {
     super(range, message, severity);
 
-    this.code = { target: document.uri, value: DIAGNOSTIC_ACTION };
+    this.code = { target: document.uri, value: packageName };
   }
 
   public static is(
@@ -225,7 +326,6 @@ export async function getPackageDiagnostic(
     );
   }
 
-  // istanbul ignore next
   return undefined;
 }
 
@@ -317,108 +417,4 @@ export async function generatePackagesDiagnostics(
   }
 
   void documentDiagnostics.render();
-}
-
-// Notifies you of potential security advisory issues.
-async function detectAdvisoryDiagnostics(
-  packagesAdvisories: PackagesAdvisories,
-  packageInfo: PackageInfo,
-  documentDecorations: DocumentDecoration | undefined,
-  documentDiagnostics: DocumentDiagnostics,
-): Promise<void> {
-  const packageAdvisories = packagesAdvisories.get(packageInfo.name);
-
-  if (!packageAdvisories) {
-    return;
-  }
-
-  const versionNormalized = packageInfo.getVersionNormalized();
-
-  if (versionNormalized === undefined) {
-    return;
-  }
-
-  const packageAdvisory = packageAdvisories.find((advisory) =>
-    intersects(advisory.vulnerable_versions, versionNormalized),
-  );
-
-  if (packageAdvisory) {
-    // If there is any advisory for the package, update the decoration.
-    documentDecorations?.setAdvisoryMessage(packageInfo, packageAdvisory);
-
-    const advisoryMessages = [
-      Icons.ADVISORY,
-      l10n.t(
-        "Security advisory: this package version has a known flaw of level {0}/{1}.",
-        packageAdvisory.severity.toUpperCase(),
-        packageAdvisory.cvss.score.toFixed(1),
-      ),
-    ];
-
-    // Filters available versions that are not affected by any type of advisory.
-    const versionsNotAffected = (await packageInfo.getVersions())!.filter(
-      (packageVersion) => {
-        if (prerelease(packageVersion)) {
-          return false;
-        }
-
-        for (const advisory of packageAdvisories) {
-          if (satisfies(packageVersion, advisory.vulnerable_versions)) {
-            return false;
-          }
-        }
-
-        return true;
-      },
-    );
-
-    // Gets the closest possible future version that does not have the problem.
-    const versionFutureNotAffected = minSatisfying(
-      versionsNotAffected,
-      `>${versionNormalized}`,
-    );
-
-    if (versionFutureNotAffected === null) {
-      advisoryMessages.push(l10n.t("No fix available yet."));
-
-      // If there is no future version available then it suggests a downgrade.
-      // Gets the largest available version in which a flaw does not exist.
-      const versionPastNotAffected = maxSatisfying(
-        versionsNotAffected,
-        `<${versionNormalized}`,
-      );
-
-      if (versionPastNotAffected !== null) {
-        advisoryMessages.push(
-          l10n.t(
-            "If possible, downgrade to version {0}.",
-            versionPastNotAffected,
-          ),
-        );
-      }
-    } else {
-      advisoryMessages.push(
-        l10n.t(
-          "Please upgrade to version {0} or higher.",
-          versionFutureNotAffected,
-        ),
-      );
-    }
-
-    advisoryMessages.push(`(${packageName})`);
-
-    // And adds a new diagnostic.
-    const diagnostic = new Diagnostic(
-      packageInfo.versionRange,
-      advisoryMessages.join(" "),
-      DiagnosticSeverity.Error,
-    );
-
-    diagnostic.code = {
-      target: Uri.parse(packageAdvisory.url),
-      value: l10n.t("Details"),
-    };
-
-    documentDiagnostics.push(diagnostic);
-  }
 }

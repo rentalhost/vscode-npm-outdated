@@ -3,7 +3,6 @@ export class Cache<T> {
 
   public constructor(public value: T) {
     this.at = Date.now();
-    this.value = value;
   }
 
   // Checks if the cache is still valid, being within lifetime.

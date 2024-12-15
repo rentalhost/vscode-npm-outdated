@@ -14,8 +14,6 @@ export default ts.config(
   promise.configs["flat/recommended"],
   importPlugin.flatConfigs.recommended,
 
-  { ignores: ["./out"] },
-
   {
     languageOptions: {
       parserOptions: {
@@ -37,7 +35,6 @@ export default ts.config(
       "getter-return": "warn",
       "no-await-in-loop": "warn",
       "no-constructor-return": "warn",
-      "no-duplicate-imports": "warn",
       "no-irregular-whitespace": ["warn", { skipStrings: false }],
       "no-promise-executor-return": "warn",
       "no-self-compare": "warn",
@@ -49,7 +46,6 @@ export default ts.config(
         "warn",
         { disallowArithmeticOperators: true },
       ],
-      "no-use-before-define": "warn",
       "no-useless-assignment": "warn",
       "require-atomic-updates": "warn",
 
@@ -59,7 +55,6 @@ export default ts.config(
       "block-scoped-var": "warn",
       camelcase: "warn",
       "class-methods-use-this": "warn",
-      "consistent-return": "warn",
       "consistent-this": "warn",
       curly: "warn",
       "default-case": "warn",
@@ -99,15 +94,6 @@ export default ts.config(
       "no-lone-blocks": "warn",
       "no-lonely-if": "warn",
       "no-loop-func": "warn",
-      "no-magic-numbers": [
-        "warn",
-        {
-          enforceConst: true,
-          ignoreArrayIndexes: true,
-          ignoreClassFieldInitialValues: true,
-          ignoreDefaultValues: true,
-        },
-      ],
       "no-multi-assign": "warn",
       "no-multi-str": "warn",
       "no-negated-condition": "warn",
@@ -159,8 +145,6 @@ export default ts.config(
       "prefer-spread": "warn",
       "prefer-template": "warn",
       radix: "warn",
-      "require-await": "warn",
-      "require-unicode-regexp": "warn",
       "sort-keys": [
         "warn",
         "asc",
@@ -178,7 +162,6 @@ export default ts.config(
     rules: {
       // `eslint` disables.
       "class-methods-use-this": "off",
-      "consistent-return": "off",
       "default-param-last": "off",
       "dot-notation": "off",
       "init-declarations": "off",
@@ -187,18 +170,18 @@ export default ts.config(
       "no-implied-eval": "off",
       "no-loop-func": "off",
       "no-loss-of-precision": "off",
-      "no-magic-numbers": "off",
       "no-redeclare": "off",
       "no-return-await": "off",
       "no-shadow": "off",
-      "no-use-before-define": "off",
       "no-useless-constructor": "off",
       "prefer-destructuring": "off",
+      "prefer-promise-reject-errors": "off",
+
+      "import/no-duplicates": "off",
 
       // `typescript` rules.
       "@typescript-eslint/array-type": ["warn", { default: "array-simple" }],
       "@typescript-eslint/class-methods-use-this": "warn",
-      "@typescript-eslint/consistent-return": "warn",
       "@typescript-eslint/consistent-type-exports": "warn",
       "@typescript-eslint/consistent-type-imports": "warn",
       "@typescript-eslint/default-param-last": "warn",
@@ -210,10 +193,13 @@ export default ts.config(
       "@typescript-eslint/naming-convention": [
         "warn",
         {
+          format: ["UPPER_CASE"],
+          selector: "enumMember",
+        },
+        {
           format: ["camelCase"],
           selector: "default",
         },
-
         {
           format: ["camelCase", "UPPER_CASE"],
           selector: "variable",
@@ -224,18 +210,16 @@ export default ts.config(
           selector: "parameter",
         },
         {
-          format: ["camelCase"],
-          leadingUnderscore: "require",
-          modifiers: ["private"],
-          selector: "memberLike",
-        },
-        {
           format: ["PascalCase"],
           selector: "typeLike",
         },
         {
-          custom: { match: true, regex: "^Page|Layout$" },
+          filter: { match: true, regex: "^Page|Layout$" },
           format: ["PascalCase"],
+          selector: "function",
+        },
+        {
+          format: ["camelCase"],
           selector: "function",
         },
       ],
@@ -248,23 +232,9 @@ export default ts.config(
       "@typescript-eslint/no-invalid-void-type": "warn",
       "@typescript-eslint/no-loop-func": "warn",
       "@typescript-eslint/no-loss-of-precision": "warn",
-      "@typescript-eslint/no-magic-numbers": [
-        "warn",
-        {
-          enforceConst: true,
-          ignoreArrayIndexes: true,
-          ignoreClassFieldInitialValues: true,
-          ignoreDefaultValues: true,
-          ignoreEnums: true,
-          ignoreNumericLiteralTypes: true,
-          ignoreReadonlyClassProperties: true,
-          ignoreTypeIndexes: true,
-        },
-      ],
       "@typescript-eslint/no-meaningless-void-operator": "warn",
       "@typescript-eslint/no-mixed-enums": "warn",
       "@typescript-eslint/no-non-null-asserted-nullish-coalescing": "warn",
-      "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/no-shadow": ["warn", { builtinGlobals: true }],
       "@typescript-eslint/no-unnecessary-boolean-literal-compare": "warn",
       "@typescript-eslint/no-unnecessary-condition": "warn",
@@ -273,8 +243,6 @@ export default ts.config(
       "@typescript-eslint/no-unnecessary-template-expression": "warn",
       "@typescript-eslint/no-unnecessary-type-arguments": "warn",
       "@typescript-eslint/no-unnecessary-type-parameters": "warn",
-      "@typescript-eslint/no-unsafe-type-assertion": "warn",
-      "@typescript-eslint/no-use-before-define": "warn",
       "@typescript-eslint/no-useless-constructor": "warn",
       "@typescript-eslint/no-useless-empty-export": "warn",
       "@typescript-eslint/prefer-destructuring": [
@@ -298,7 +266,7 @@ export default ts.config(
   },
 
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["**/*.{mjs,ts,tsx}"],
 
     languageOptions: {
       ecmaVersion: "latest",
@@ -322,7 +290,6 @@ export default ts.config(
       "import/no-import-module-exports": "warn",
       "import/no-mutable-exports": "warn",
       "import/no-named-default": "warn",
-      "import/no-named-export": "warn",
       "import/no-namespace": "warn",
       "import/no-relative-packages": "warn",
       "import/no-relative-parent-imports": "warn",

@@ -1,3 +1,7 @@
+/* eslint-disable id-length */
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable max-classes-per-file */
 export class Range {
   public start: { character: number; line: number };
 
@@ -64,10 +68,10 @@ export class CodeAction {
 }
 
 export const l10n = {
-  t: (message: string, ...arguments_: unknown[]): string => {
+  t: (message: string, ...args: unknown[]): string => {
     let messageModified = message;
 
-    for (const [argumentIndex, argument] of arguments_.entries()) {
+    for (const [argumentIndex, argument] of args.entries()) {
       messageModified = messageModified.replaceAll(
         `{${argumentIndex}}`,
         String(argument),

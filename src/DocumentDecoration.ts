@@ -1,108 +1,16 @@
 import { prerelease } from "semver";
 import { l10n, Range, window } from "vscode";
 
+import { DocumentDecorationManager } from "./DocumentDecorationManager";
+import { Message } from "./Message";
 import { getDecorationsMode } from "./Settings";
-import { Icons, Margins, ThemeDark, ThemeLight } from "./Theme";
+import { icons, margins, themeDark, themeLight } from "./Theme";
 import { lazyCallback } from "./Utils";
 
 import type { PackageRelatedDiagnostic } from "./Diagnostic";
 import type { PackageInfo } from "./PackageInfo";
 import type { PackageAdvisory } from "./PackageManager";
-import type {
-  DecorationOptions,
-  TextDocument,
-  TextEditor,
-  TextEditorDecorationType,
-  ThemableDecorationAttachmentRenderOptions,
-} from "vscode";
-
-class Message {
-  public constructor(
-    public message: string,
-    public styleDefault?: ThemableDecorationAttachmentRenderOptions,
-    public styleDark?: ThemableDecorationAttachmentRenderOptions,
-  ) {}
-}
-
-// We need to store the styles that will be used.
-// This way we will support up to 5 different styles in a single line.
-const decorationTypes = new Map<number, TextEditorDecorationType>([
-  [0, window.createTextEditorDecorationType({})],
-  [1, window.createTextEditorDecorationType({})],
-  [2, window.createTextEditorDecorationType({})],
-  [3, window.createTextEditorDecorationType({})],
-  [4, window.createTextEditorDecorationType({})],
-]);
-
-// We need to create some decoration levels as needed.
-// Each layer must have its own style implementation, so that the message order is respected.
-// @see https://github.com/microsoft/vscode/issues/169051
-export class DocumentDecorationManager {
-  private static readonly documents = new WeakMap<
-    TextDocument,
-    DocumentDecorationManager
-  >();
-
-  public layers = new Map<number, DocumentDecorationLayer>();
-
-  // Returns the decoration layers of a document.
-  // If the document has never been used, then instantiate and return.
-  public static fromDocument(
-    document: TextDocument,
-  ): DocumentDecorationManager {
-    if (!this.documents.has(document)) {
-      this.documents.set(document, new DocumentDecorationManager());
-    }
-
-    return this.documents.get(document)!;
-  }
-
-  // When the document is closed, then it unloads the layers defined for it.
-  public static flushDocument(document: TextDocument): void {
-    const documentLayers =
-      DocumentDecorationManager.fromDocument(document).layers;
-
-    for (const layer of documentLayers.values()) {
-      for (const editor of window.visibleTextEditors) {
-        if (editor.document === document) {
-          editor.setDecorations(layer.type, []);
-        }
-      }
-    }
-
-    this.documents.delete(document);
-  }
-
-  public getLayer(position: number): DocumentDecorationLayer {
-    if (!this.layers.has(position)) {
-      this.layers.set(position, new DocumentDecorationLayer(position));
-    }
-
-    return this.layers.get(position)!;
-  }
-
-  public flushLayers(): void {
-    for (const layer of this.layers.values()) {
-      layer.lines.clear();
-    }
-  }
-
-  public flushLine(line: number): void {
-    for (const layer of this.layers.values()) {
-      layer.lines.delete(line);
-    }
-  }
-}
-
-class DocumentDecorationLayer {
-  public lines = new Map<number, DecorationOptions>();
-
-  public type: TextEditorDecorationType;
-
-  public constructor(position: number) {
-    this.type = decorationTypes.get(position)!;
-  }
-}
+import type { TextDocument, TextEditor } from "vscode";
 
 export class DocumentDecoration {
   private readonly editors: TextEditor[];
@@ -143,16 +51,12 @@ export class DocumentDecoration {
 
   public setCheckedMessage(line: number): void {
     this.setLine(line, [
-      new Message(
-        Icons.CHECKED,
-        ThemeLight.ICON_CHECKED,
-        ThemeDark.ICON_CHECKED,
-      ),
+      new Message(icons.checked, themeLight.iconChecked, themeDark.iconChecked),
     ]);
   }
 
   public setCheckingMessage(line: number): void {
-    this.setLine(line, [new Message(Icons.CHECKING)]);
+    this.setLine(line, [new Message(icons.checking)]);
   }
 
   public async setUpdateMessage(
@@ -168,9 +72,9 @@ export class DocumentDecoration {
     if (await packageInfo.packageRelated.requiresInstallCommand()) {
       this.setLine(line, [
         new Message(
-          Icons.PENDING,
-          ThemeLight.ICON_AVAILABLE,
-          ThemeDark.ICON_AVAILABLE,
+          icons.pending,
+          themeLight.iconAvailable,
+          themeDark.iconAvailable,
         ),
         new Message(l10n.t("Now run your package manager install command.")),
       ]);
@@ -180,21 +84,21 @@ export class DocumentDecoration {
 
     const updateDetails = [
       new Message(
-        Icons.UPDATABLE,
-        ThemeLight.ICON_UPDATABLE,
-        ThemeDark.ICON_UPDATABLE,
+        icons.updatable,
+        themeLight.iconUpdatable,
+        themeDark.iconUpdatable,
       ),
       new Message(
         packageVersionInstalled === undefined
           ? l10n.t("Latest version:")
           : l10n.t("Update available:"),
-        ThemeLight.LABEL_UPDATABLE,
-        ThemeDark.LABEL_UPDATABLE,
+        themeLight.labelUpdatable,
+        themeDark.labelUpdatable,
       ),
       new Message(
         versionLatest,
-        ThemeLight.LABEL_VERSION,
-        ThemeDark.LABEL_VERSION,
+        themeLight.labelVersion,
+        themeDark.labelVersion,
       ),
     ];
 
@@ -203,8 +107,8 @@ export class DocumentDecoration {
       updateDetails.push(
         new Message(
           `(${l10n.t("install pending")})`,
-          ThemeLight.LABEL_PENDING,
-          ThemeDark.LABEL_PENDING,
+          themeLight.labelPending,
+          themeDark.labelPending,
         ),
       );
     } else if (
@@ -214,8 +118,8 @@ export class DocumentDecoration {
       updateDetails.push(
         new Message(
           `(${l10n.t("already installed, just formalization")})`,
-          ThemeLight.LABEL_FORMALIZATION,
-          ThemeDark.LABEL_FORMALIZATION,
+          themeLight.labelFormalization,
+          themeDark.labelFormalization,
         ),
       );
     }
@@ -225,8 +129,8 @@ export class DocumentDecoration {
       updateDetails.push(
         new Message(
           `(${l10n.t("attention: major update!")})`,
-          ThemeLight.LABEL_MAJOR,
-          ThemeDark.LABEL_MAJOR,
+          themeLight.labelMajor,
+          themeDark.labelMajor,
         ),
       );
     }
@@ -237,8 +141,8 @@ export class DocumentDecoration {
       updateDetails.push(
         new Message(
           `<${l10n.t("pre-release")}>`,
-          ThemeLight.LABEL_PRERELEASE,
-          ThemeDark.LABEL_PRERELEASE,
+          themeLight.labelPreRelease,
+          themeDark.labelPreRelease,
         ),
       );
     }
@@ -252,21 +156,21 @@ export class DocumentDecoration {
   ): void {
     this.setLine(packageInfo.getLine(), [
       new Message(
-        Icons.ADVISORY,
-        ThemeLight.ICON_ADVISORY,
-        ThemeDark.ICON_ADVISORY,
+        icons.advisory,
+        themeLight.iconAdvisory,
+        themeDark.iconAdvisory,
       ),
       new Message(
         `${l10n.t("Security advisory")} (${l10n.t(
           packageAdvisory.severity.toUpperCase(),
         )}/${packageAdvisory.cvss.score.toFixed(1)}):`,
-        ThemeLight.LABEL_ADVISORY,
-        ThemeDark.LABEL_ADVISORY,
+        themeLight.labelAdvisory,
+        themeDark.labelAdvisory,
       ),
       new Message(
         `${packageAdvisory.title.replace(/\.$/, "")}.`,
-        ThemeLight.LABEL_ADVISORY_TITLE,
-        ThemeDark.LABEL_ADVISORY_TITLE,
+        themeLight.labelAdvisoryTitle,
+        themeDark.labelAdvisoryTitle,
       ),
     ]);
   }
@@ -291,11 +195,11 @@ export class DocumentDecoration {
         renderOptions: {
           after: {
             contentText: messages.map((message) => message.message).join(" "),
-            ...ThemeLight.DEFAULT,
-            ...Margins.MARGIN_INITIAL,
+            ...themeLight.default,
+            ...margins.marginInitial,
           },
           dark: {
-            after: { ...ThemeDark.DEFAULT },
+            after: { ...themeDark.default },
           },
         },
       });
@@ -308,15 +212,15 @@ export class DocumentDecoration {
           renderOptions: {
             after: {
               contentText: message.message,
-              ...ThemeLight.DEFAULT,
+              ...themeLight.default,
               ...(messageIndex === 0
-                ? Margins.MARGIN_INITIAL
-                : Margins.MARGIN_THEN),
+                ? margins.marginInitial
+                : margins.marginThen),
               ...message.styleDefault,
             },
             dark: {
               after: {
-                ...ThemeDark.DEFAULT,
+                ...themeDark.default,
                 ...message.styleDark,
               },
             },

@@ -1,11 +1,11 @@
-/* eslint-disable vitest/require-hook */
+/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { DiagnosticSeverity } from "vscode";
 
 import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "./Command";
 import { PackageManager } from "./PackageManager";
 import { vscodeSimulator } from "./TestUtils";
-import { Icons } from "./Theme";
+import { icons } from "./Theme";
 
 jest.mock("node:child_process", () => ({
   __esModule: true,
@@ -212,7 +212,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics[0]?.message).toContain("Pre-release version");
-    expect(decorations[0]).toContain(Icons.CHECKED);
+    expect(decorations[0]).toContain(icons.checked);
   });
 
   it("valid dependency, newer pre-release available", async () => {
@@ -272,7 +272,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([Icons.CHECKED]);
+    expect(decorations[0]).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, with partial version", async () => {
@@ -285,7 +285,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([Icons.CHECKED]);
+    expect(decorations[0]).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, suggests minor or greater only", async () => {
@@ -299,7 +299,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([Icons.CHECKED]);
+    expect(decorations[0]).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, but cannot get latest version (exception case)", async () => {
@@ -311,7 +311,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([Icons.CHECKED]);
+    expect(decorations[0]).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, no diagnostic", async () => {
@@ -365,7 +365,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations).toStrictEqual([]); // No requires diagnostics.
+    expect(decorations).toStrictEqual([]);
   });
 
   it("dependency version is complex", async () => {
@@ -376,7 +376,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations).toStrictEqual([]); // No requires diagnostics.
+    expect(decorations).toStrictEqual([]);
   });
 
   it("dependency version is invalid", async () => {
@@ -412,7 +412,7 @@ describe("package diagnostics", () => {
     });
 
     expect(decorations[0]).toContain(
-      `${Icons.UPDATABLE} Update available: 1.0.1`,
+      `${icons.updatable} Update available: 1.0.1`,
     );
   });
 
@@ -1001,7 +1001,7 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toContain(Icons.CHECKED);
+    expect(decorations[0]).toContain(icons.checked);
   });
 
   it("detect installed modules: pnpm", async () => {
@@ -1015,7 +1015,7 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toContain(Icons.CHECKED);
+    expect(decorations[0]).toContain(icons.checked);
   });
 
   it("valid dependency, newer version available (pnpm issue #7514)", async () => {
@@ -1027,8 +1027,8 @@ describe("security advisories", () => {
       packagesInstalled: `pnpm issue printing message before JSON\n${JSON.stringify(
         [
           {
-            name: "test",
             dependencies: { "npm-outdated": { version: "1.0.0" } },
+            name: "test",
           },
         ],
       )}`,

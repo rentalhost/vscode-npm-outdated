@@ -2,7 +2,8 @@ import { lazyCallback } from "./Utils";
 
 import type { Diagnostic, DiagnosticCollection, TextDocument } from "vscode";
 
-// This class assists in managing diagnostics for the document.
+const LAZY_WAITING_DURATION_MS = 100;
+
 export class DocumentDiagnostics {
   public render;
 
@@ -15,7 +16,7 @@ export class DocumentDiagnostics {
     this.render = lazyCallback(() => {
       this.diagnosticsCollection.clear();
       this.diagnosticsCollection.set(this.document.uri, this.diagnostics);
-    }, 100);
+    }, LAZY_WAITING_DURATION_MS);
   }
 
   public push(diagnostic: Diagnostic): void {

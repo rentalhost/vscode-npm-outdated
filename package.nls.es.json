@@ -1,23 +1,23 @@
 {
-  "npm-outdated.configuration.level.description": "Diferencia mínima *semver* necesaria para que una dependencia se muestre como desactualizada. Consulte la [documentación Semver](https://docs.npmjs.com/cli/v6/using-npm/semver) (*en inglés*) para obtener más detalles.",
-  "npm-outdated.configuration.level.major.description": "Solo mostrará una advertencia de actualización cuando haya una actualización de la versión principal (por ejemplo, de 1.0.0 a 2.0.0).",
-  "npm-outdated.configuration.level.minor.description": "Solo mostrará una advertencia de actualización cuando haya una actualización de la versión menor (por ejemplo, de 1.0.0 a 1.1.0).",
-  "npm-outdated.configuration.level.patch.description": "Solo mostrará una advertencia de actualización cuando haya una actualización de la versión de parche (por ejemplo, de 1.0.0 a 1.0.1).",
+  "npm-outdated-plus.configuration.level.description": "Diferencia mínima *semver* necesaria para que una dependencia se muestre como desactualizada. Consulte la [documentación Semver](https://docs.npmjs.com/cli/v6/using-npm/semver) (*en inglés*) para obtener más detalles.",
+  "npm-outdated-plus.configuration.level.major.description": "Solo mostrará una advertencia de actualización cuando haya una actualización de la versión principal (por ejemplo, de 1.0.0 a 2.0.0).",
+  "npm-outdated-plus.configuration.level.minor.description": "Solo mostrará una advertencia de actualización cuando haya una actualización de la versión menor (por ejemplo, de 1.0.0 a 1.1.0).",
+  "npm-outdated-plus.configuration.level.patch.description": "Solo mostrará una advertencia de actualización cuando haya una actualización de la versión de parche (por ejemplo, de 1.0.0 a 1.0.1).",
 
-  "npm-outdated.configuration.doItForMeAction.description": "Lo que se debe hacer al hacer clic en el botón de actualización.",
-  "npm-outdated.configuration.doItForMeAction.install.description": "Ejecutar el comando `install` del gestor de dependencias.",
-  "npm-outdated.configuration.doItForMeAction.update.description": "Ejecutar el comando `update` del gestor de dependencias.",
+  "npm-outdated-plus.configuration.doItForMeAction.description": "Lo que se debe hacer al hacer clic en el botón de actualización.",
+  "npm-outdated-plus.configuration.doItForMeAction.install.description": "Ejecutar el comando `install` del gestor de dependencias.",
+  "npm-outdated-plus.configuration.doItForMeAction.update.description": "Ejecutar el comando `update` del gestor de dependencias.",
 
-  "npm-outdated.configuration.majorUpdateProtection.description": "Evita que una dependencia se actualice directamente a una versión `major`. Una sugerencia de este tipo solo ocurrirá si la versión definida por el usuario ya es la última versión `minor` disponible.",
+  "npm-outdated-plus.configuration.majorUpdateProtection.description": "Evita que una dependencia se actualice directamente a una versión `major`. Una sugerencia de este tipo solo ocurrirá si la versión definida por el usuario ya es la última versión `minor` disponible.",
 
-  "npm-outdated.configuration.identifySecurityAdvisories.description": "Identifica las dependencias utilizadas con avisos de seguridad conocidos.",
+  "npm-outdated-plus.configuration.identifySecurityAdvisories.description": "Identifica las dependencias utilizadas con avisos de seguridad conocidos.",
 
-  "npm-outdated.configuration.decorations.description": "Muestra decoraciones en el lado derecho de las dependencias que contienen más detalles sobre las posibles actualizaciones.",
-  "npm-outdated.configuration.decorations.fancy.description": "Los detalles están coloreados y son mucho más fáciles de identificar.",
-  "npm-outdated.configuration.decorations.simple.description": "Los detalles se muestran de forma más simple y menos llamativa, pero aún informativa. Ayuda al rendimiento si no te importan los colores.",
-  "npm-outdated.configuration.decorations.disabled.description": "Los detalles no se mostrarán directamente, pero aún verá la versión de la dependencia al pasar el mouse sobre ella en una tooltip.",
+  "npm-outdated-plus.configuration.decorations.description": "Muestra decoraciones en el lado derecho de las dependencias que contienen más detalles sobre las posibles actualizaciones.",
+  "npm-outdated-plus.configuration.decorations.fancy.description": "Los detalles están coloreados y son mucho más fáciles de identificar.",
+  "npm-outdated-plus.configuration.decorations.simple.description": "Los detalles se muestran de forma más simple y menos llamativa, pero aún informativa. Ayuda al rendimiento si no te importan los colores.",
+  "npm-outdated-plus.configuration.decorations.disabled.description": "Los detalles no se mostrarán directamente, pero aún verá la versión de la dependencia al pasar el mouse sobre ella en una tooltip.",
 
-  "npm-outdated.configuration.cacheLifetime.description": "Cantidad de minutos durante los cuales las versiones de las dependencias ya analizadas se mantendrán en caché internamente. Mejora el rendimiento.",
+  "npm-outdated-plus.configuration.cacheLifetime.description": "Cantidad de minutos durante los cuales las versiones de las dependencias ya analizadas se mantendrán en caché internamente. Mejora el rendimiento.",
 
-  "npm-outdated.configuration.parallelProcessesLimit.description": "Define cuántas dependencias pueden analizarse al mismo tiempo. Un valor alto hace que el proceso sea más rápido, pero consume más CPU. Establezca como `0` para desactivar este límite (pero úselo con moderación)."
+  "npm-outdated-plus.configuration.parallelProcessesLimit.description": "Define cuántas dependencias pueden analizarse al mismo tiempo. Un valor alto hace que el proceso sea más rápido, pero consume más CPU. Establezca como `0` para desactivar este límite (pero úselo con moderación)."
 }

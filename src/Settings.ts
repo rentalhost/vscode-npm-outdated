@@ -43,12 +43,13 @@ export function getDecorationsMode(): "disabled" | "fancy" | "simple" {
 // Time in minutes in which the versions of packages already analyzed will be kept internally.
 // Default: 60 minutes.
 export function getCacheLifetime(): number {
+  const MINUTES_IN_MS = 60000;
+
   return (
+    MINUTES_IN_MS *
     Number(
       workspace.getConfiguration().get<number>(`${packageName}.cacheLifetime`),
-    ) *
-    60 *
-    1000
+    )
   );
 }
 

@@ -13,11 +13,133 @@ import { hasMajorUpdateProtection } from "./Settings";
 
 import type { CodeActionProvider, Range, TextDocument } from "vscode";
 
-export const DIAGNOSTIC_ACTION = packageName;
+const VERSION_PREFIX_REGEXP = /^\s*(?<op>[=^~]|>=|<=)/;
 
-const VERSION_PREFIX_REGEXP = /^\s*([=^~]|>=|<=)/;
+async function createAction(
+  document: TextDocument,
+  message: string,
+  diagnostics: PackageRelatedDiagnostic[],
+  isPreferred?: boolean,
+): Promise<CodeAction> {
+  const edit = new WorkspaceEdit();
+  const action = new CodeAction(message, CodeActionKind.QuickFix);
+
+  action.edit = edit;
+  action.diagnostics = diagnostics;
+  action.isPreferred = isPreferred;
+
+  await Promise.any(
+    diagnostics.map(async (diagnostic) => {
+      const isLatest =
+        await diagnostic.packageRelated.isVersionLatestAlreadyInstalled();
+
+      if (!isLatest) {
+        throw new Error();
+      }
+
+      return true;
+    }),
+  ).then(
+    () => {
+      action.command = {
+        arguments: [document],
+        command: COMMAND_INSTALL_REQUEST,
+        title: "update",
+      };
+    },
+    () => null,
+  );
+
+  return action;
+}
+
+async function createUpdateManyAction(
+  document: TextDocument,
+  diagnostics: PackageRelatedDiagnostic[],
+  message: string,
+): Promise<CodeAction> {
+  const action = await createAction(document, message, diagnostics);
+
+  await Promise.all(
+    diagnostics.map(async (diagnostic) =>
+      updatePackageVersion(action, document, diagnostic),
+    ),
+  );
+
+  return action;
+}
+
+async function createUpdateSingleAction(
+  document: TextDocument,
+  diagnostic: PackageRelatedDiagnostic,
+): Promise<CodeAction> {
+  const versionLatest = await diagnostic.packageRelated.getVersionLatest();
+  const updateWarning =
+    hasMajorUpdateProtection() &&
+    (await diagnostic.packageRelated.requiresVersionMajorUpdate())
+      ? ` (${l10n.t("major")})`
+      : "";
+
+  const action = createAction(
+    document,
+    `${l10n.t(
+      'Update "{0}" to {1}',
+      diagnostic.packageRelated.name,
+      versionLatest!,
+    )}${updateWarning}`,
+    [diagnostic],
+    true,
+  );
+
+  await updatePackageVersion(await action, document, diagnostic);
+
+  return action;
+}
+
+const SINGLE_PACKAGE_TO_INSTALL = 1;
+
+function createInstallAction(
+  document: TextDocument,
+  requiresInstallCount: number,
+): CodeAction {
+  const action = new CodeAction(
+    requiresInstallCount === SINGLE_PACKAGE_TO_INSTALL
+      ? l10n.t("Install package")
+      : l10n.t("Install packages"),
+    CodeActionKind.QuickFix,
+  );
+
+  action.command = {
+    arguments: [document],
+    command: COMMAND_INSTALL_REQUEST,
+    title: "update",
+  };
+
+  return action;
+}
+
+async function updatePackageVersion(
+  action: CodeAction,
+  document: TextDocument,
+  diagnostic: PackageRelatedDiagnostic,
+): Promise<void> {
+  const line = document.lineAt(diagnostic.range.start.line);
+  const version = line.text.slice(
+    diagnostic.range.start.character,
+    diagnostic.range.end.character,
+  );
+  const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.groups?.op ?? "";
+  const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
+
+  action.edit?.replace(
+    document.uri,
+    diagnostic.range,
+    versionPrefix + versionUpdated,
+  );
+}
 
 export class PackageJsonCodeActionProvider implements CodeActionProvider {
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   public async provideCodeActions(
     document: TextDocument,
     range: Range,
@@ -25,10 +147,11 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
     const diagnosticsAll = languages.getDiagnostics(document.uri);
 
     // Get all diagnostics from this extension.
+     
     const diagnostics = diagnosticsAll.filter(
       (diagnostic) =>
         typeof diagnostic.code === "object" &&
-        diagnostic.code.value === DIAGNOSTIC_ACTION &&
+        diagnostic.code.value === packageName &&
         (!PackageRelatedDiagnostic.is(diagnostic) ||
           diagnostic.type === DiagnosticType.GENERAL),
     ) as PackageRelatedDiagnostic[];
@@ -82,13 +205,19 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
       if (hasMajorUpdateProtection()) {
         const diagnosticsSelectedMajors: PackageRelatedDiagnostic[] = [];
 
-        for (const diagnosticSelected of diagnosticsSelected) {
-          if (
-            await diagnosticSelected.packageRelated.requiresVersionMajorUpdate()
-          ) {
-            diagnosticsSelectedMajors.push(diagnosticSelected);
+        await Promise.all(
+          diagnosticsSelected.map(async (diagnostic) =>
+            diagnostic.packageRelated
+              .requiresVersionMajorUpdate()
+              .then((result) => [diagnostic, result] as const),
+          ),
+        ).then((results) => {
+          for (const [diagnostic, result] of results) {
+            if (result) {
+              diagnosticsSelectedMajors.push(diagnostic);
+            }
           }
-        }
+        });
 
         if (diagnosticsSelectedMajors.length > 0) {
           if (diagnosticsSelectedMajors.length < diagnosticsSelected.length) {
@@ -132,11 +261,19 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
       if (hasMajorUpdateProtection()) {
         const diagnosticsMajors: PackageRelatedDiagnostic[] = [];
 
-        for (const diagnostic of diagnostics) {
-          if (await diagnostic.packageRelated.requiresVersionMajorUpdate()) {
-            diagnosticsMajors.push(diagnostic);
+        await Promise.all(
+          diagnostics.map(async (diagnostic) =>
+            diagnostic.packageRelated
+              .requiresVersionMajorUpdate()
+              .then((result) => [diagnostic, result] as const),
+          ),
+        ).then((results) => {
+          for (const [diagnostic, result] of results) {
+            if (result) {
+              diagnosticsMajors.push(diagnostic);
+            }
           }
-        }
+        });
 
         if (diagnosticsMajors.length > 0) {
           if (diagnosticsMajors.length < diagnostics.length) {
@@ -172,120 +309,4 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
 
     return Promise.all(diagnosticsPromises);
   }
-}
-
-async function createAction(
-  document: TextDocument,
-  message: string,
-  diagnostics: PackageRelatedDiagnostic[],
-  isPreferred?: boolean,
-): Promise<CodeAction> {
-  const edit = new WorkspaceEdit();
-  const action = new CodeAction(message, CodeActionKind.QuickFix);
-
-  action.edit = edit;
-  action.diagnostics = diagnostics;
-  action.isPreferred = isPreferred;
-
-  let requiresUpdate = false;
-
-  for (const diagnostic of diagnostics) {
-    if (!(await diagnostic.packageRelated.isVersionLatestAlreadyInstalled())) {
-      requiresUpdate = true;
-      break;
-    }
-  }
-
-  if (requiresUpdate) {
-    action.command = {
-      arguments: [document],
-      command: COMMAND_INSTALL_REQUEST,
-      title: "update",
-    };
-  }
-
-  return action;
-}
-
-async function createUpdateManyAction(
-  document: TextDocument,
-  diagnostics: PackageRelatedDiagnostic[],
-  message: string,
-): Promise<CodeAction> {
-  const action = await createAction(document, message, diagnostics);
-
-  await Promise.all(
-    diagnostics.map(async (diagnostic) =>
-      updatePackageVersion(action, document, diagnostic),
-    ),
-  );
-
-  return action;
-}
-
-async function createUpdateSingleAction(
-  document: TextDocument,
-  diagnostic: PackageRelatedDiagnostic,
-): Promise<CodeAction> {
-  const versionLatest = await diagnostic.packageRelated.getVersionLatest();
-  const updateWarning =
-    hasMajorUpdateProtection() &&
-    (await diagnostic.packageRelated.requiresVersionMajorUpdate())
-      ? ` (${l10n.t("major")})`
-      : "";
-
-  const action = createAction(
-    document,
-    `${l10n.t(
-      'Update "{0}" to {1}',
-      diagnostic.packageRelated.name,
-      versionLatest!,
-    )}${updateWarning}`,
-    [diagnostic],
-    true,
-  );
-
-  await updatePackageVersion(await action, document, diagnostic);
-
-  return action;
-}
-
-function createInstallAction(
-  document: TextDocument,
-  requiresInstallCount: number,
-): CodeAction {
-  const action = new CodeAction(
-    requiresInstallCount === 1
-      ? l10n.t("Install package")
-      : l10n.t("Install packages"),
-    CodeActionKind.QuickFix,
-  );
-
-  action.command = {
-    arguments: [document],
-    command: COMMAND_INSTALL_REQUEST,
-    title: "update",
-  };
-
-  return action;
-}
-
-async function updatePackageVersion(
-  action: CodeAction,
-  document: TextDocument,
-  diagnostic: PackageRelatedDiagnostic,
-): Promise<void> {
-  const line = document.lineAt(diagnostic.range.start.line);
-  const version = line.text.slice(
-    diagnostic.range.start.character,
-    diagnostic.range.end.character,
-  );
-  const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.[1] ?? "";
-  const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
-
-  action.edit?.replace(
-    document.uri,
-    diagnostic.range,
-    versionPrefix + versionUpdated,
-  );
 }

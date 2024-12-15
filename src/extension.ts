@@ -8,22 +8,23 @@ import {
   packageInstallRequest,
 } from "./Command";
 import { diagnosticSubscribe, generatePackagesDiagnostics } from "./Diagnostic";
+import { name as packageName } from "./plugin.json";
 import { lazyCallback } from "./Utils";
 
 import type { ExtensionContext, TextDocument } from "vscode";
 
-export function activate(context: ExtensionContext): void {
+export function activate(context: ExtensionContext) {
   const diagnostics = languages.createDiagnosticCollection();
 
-  diagnosticSubscribe(
-    context,
-    diagnostics,
-    lazyCallback(async (document: TextDocument) => {
-      await generatePackagesDiagnostics(document, diagnostics);
-    }),
-  );
+  const handleChange = lazyCallback(async (document: TextDocument) => {
+    await generatePackagesDiagnostics(document, diagnostics);
+  });
 
-  const outputChannel = window.createOutputChannel("npm Outdated");
+  diagnosticSubscribe(context, diagnostics, (document: TextDocument) => {
+    void handleChange(document);
+  });
+
+  const outputChannel = window.createOutputChannel(packageName);
 
   context.subscriptions.push(
     diagnostics,

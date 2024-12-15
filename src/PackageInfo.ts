@@ -30,10 +30,11 @@ const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
   major: 2,
   minor: 1,
   patch: 0,
-  /** ignore */ premajor: -1,
-  /** ignore */ preminor: -1,
-  /** ignore */ prepatch: -1,
-  /** ignore */ prerelease: -1,
+  // Ignore all after:
+  premajor: -1,
+  preminor: -1,
+  prepatch: -1,
+  prerelease: -1,
 };
 
 // The package info, based on user-document.
@@ -43,7 +44,7 @@ export class PackageInfo {
     public name: string,
     public range: Range,
     public version: string,
-    public versionRange: Range, // The package version range only.
+    public versionRange: Range,
   ) {}
 
   // Get the package line on `packages.json` document.

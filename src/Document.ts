@@ -38,31 +38,36 @@ export type DocumentsPackagesInterface = Record<string, PackageInfo>;
 export async function getDocumentPackages(
   document: TextDocument,
 ): Promise<DocumentsPackagesInterface> {
-  let symbols: DocumentSymbol[] | undefined;
+  return new Promise((resolve) => {
+    void waitUntil(async () => {
+      const symbols: DocumentSymbol[] | undefined =
+        await commands.executeCommand(
+          "vscode.executeDocumentSymbolProvider",
+          document.uri,
+        );
 
-  await waitUntil(async () => {
-    symbols = await commands.executeCommand(
-      "vscode.executeDocumentSymbolProvider",
-      document.uri,
-    );
+      if (symbols !== undefined) {
+        resolve(
+          Object.fromEntries(
+            [
+              ...mapDependencyRange(
+                document,
+                symbols.find((symbol) => symbol.name === "dependencies"),
+              ),
+              ...mapDependencyRange(
+                document,
+                symbols.find((symbol) => symbol.name === "devDependencies"),
+              ),
+              ...mapDependencyRange(
+                document,
+                symbols.find((symbol) => symbol.name === "peerDependencies"),
+              ),
+            ].map((documentPackage) => [documentPackage.name, documentPackage]),
+          ),
+        );
+      }
 
-    return symbols !== undefined;
-  }, 33);
-
-  return Object.fromEntries(
-    [
-      ...mapDependencyRange(
-        document,
-        symbols?.find((symbol) => symbol.name === "dependencies"),
-      ),
-      ...mapDependencyRange(
-        document,
-        symbols?.find((symbol) => symbol.name === "devDependencies"),
-      ),
-      ...mapDependencyRange(
-        document,
-        symbols?.find((symbol) => symbol.name === "peerDependencies"),
-      ),
-    ].map((documentPackage) => [documentPackage.name, documentPackage]),
-  );
+      return symbols !== undefined;
+    }, 33);
+  });
 }

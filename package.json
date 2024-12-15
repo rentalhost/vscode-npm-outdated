@@ -1,6 +1,6 @@
 {
   "name": "npm-outdated-plus",
-  "displayName": "npm-outdated plus",
+  "displayName": "npm-outdated-plus",
   "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm and pnpm.",
   "version": "3.2.0",
   "publisher": "rentalhost",
@@ -8,7 +8,7 @@
   "l10n": "./locales",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rentalhost/vscode-npm-outdated.git"
+    "url": "https://github.com/rentalhost/vscode-npm-outdated-plus.git"
   },
   "bugs": {
     "url": "https://github.com/rentalhost/vscode-npm-outdated/issues"
@@ -32,10 +32,10 @@
     "build:base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc",
     "watch": "tsc -watch",
-    "prettier": "prettier --check .",
-    "prettier:fix": "prettier --write .",
-    "eslint": "eslint .",
-    "eslint:fix": "eslint --fix .",
+    "prettier": "prettier --check ./src",
+    "prettier:fix": "prettier --write ./src",
+    "eslint": "eslint ./src",
+    "eslint:fix": "eslint --fix ./src",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch --detectOpenHandles"
   },
@@ -82,9 +82,9 @@
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "npm-outdated plus",
+      "title": "npm-outdated-plus",
       "properties": {
-        "npm-outdated.level": {
+        "npm-outdated-plus.level": {
           "order": 1000,
           "type": "string",
           "default": "patch",
@@ -94,19 +94,19 @@
             "patch"
           ],
           "enumDescriptions": [
-            "%npm-outdated.configuration.level.major.description%",
-            "%npm-outdated.configuration.level.minor.description%",
-            "%npm-outdated.configuration.level.patch.description%"
+            "%npm-outdated-plus.configuration.level.major.description%",
+            "%npm-outdated-plus.configuration.level.minor.description%",
+            "%npm-outdated-plus.configuration.level.patch.description%"
           ],
-          "markdownDescription": "%npm-outdated.configuration.level.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.level.description%"
         },
-        "npm-outdated.majorUpdateProtection": {
+        "npm-outdated-plus.majorUpdateProtection": {
           "order": 2000,
           "type": "boolean",
           "default": true,
-          "markdownDescription": "%npm-outdated.configuration.majorUpdateProtection.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.majorUpdateProtection.description%"
         },
-        "npm-outdated.doItForMeAction": {
+        "npm-outdated-plus.doItForMeAction": {
           "order": 2250,
           "type": "string",
           "default": "install",
@@ -115,18 +115,18 @@
             "update"
           ],
           "enumDescriptions": [
-            "%npm-outdated.configuration.doItForMeAction.install.description%",
-            "%npm-outdated.configuration.doItForMeAction.update.description%"
+            "%npm-outdated-plus.configuration.doItForMeAction.install.description%",
+            "%npm-outdated-plus.configuration.doItForMeAction.update.description%"
           ],
-          "markdownDescription": "%npm-outdated.configuration.doItForMeAction.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.doItForMeAction.description%"
         },
-        "npm-outdated.identifySecurityAdvisories": {
+        "npm-outdated-plus.identifySecurityAdvisories": {
           "order": 2500,
           "type": "boolean",
           "default": true,
-          "markdownDescription": "%npm-outdated.configuration.identifySecurityAdvisories.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.identifySecurityAdvisories.description%"
         },
-        "npm-outdated.decorations": {
+        "npm-outdated-plus.decorations": {
           "order": 3000,
           "type": "string",
           "enum": [
@@ -135,26 +135,26 @@
             "disabled"
           ],
           "enumDescriptions": [
-            "%npm-outdated.configuration.decorations.fancy.description%",
-            "%npm-outdated.configuration.decorations.simple.description%",
-            "%npm-outdated.configuration.decorations.disabled.description%"
+            "%npm-outdated-plus.configuration.decorations.fancy.description%",
+            "%npm-outdated-plus.configuration.decorations.simple.description%",
+            "%npm-outdated-plus.configuration.decorations.disabled.description%"
           ],
           "default": "fancy",
-          "markdownDescription": "%npm-outdated.configuration.decorations.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.decorations.description%"
         },
-        "npm-outdated.cacheLifetime": {
+        "npm-outdated-plus.cacheLifetime": {
           "order": 9000,
           "type": "number",
           "default": 60,
           "minimum": 1,
-          "markdownDescription": "%npm-outdated.configuration.cacheLifetime.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.cacheLifetime.description%"
         },
-        "npm-outdated.parallelProcessesLimit": {
+        "npm-outdated-plus.parallelProcessesLimit": {
           "order": 9100,
           "type": "number",
           "default": 20,
           "minimum": 0,
-          "markdownDescription": "%npm-outdated.configuration.parallelProcessesLimit.description%"
+          "markdownDescription": "%npm-outdated-plus.configuration.parallelProcessesLimit.description%"
         }
       }
     }

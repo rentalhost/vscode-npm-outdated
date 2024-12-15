@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable import/no-namespace */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as ChildProcess from "node:child_process";
@@ -8,7 +10,7 @@ import * as vscode from "vscode";
 import { Range } from "vscode";
 
 import { PackageJsonCodeActionProvider } from "./CodeAction";
-import { DocumentDecorationManager } from "./DocumentDecoration";
+import { DocumentDecorationManager } from "./DocumentDecorationManager";
 import { activate } from "./extension";
 import { PackageManager } from "./PackageManager";
 import { name as packageName } from "./plugin.json";
@@ -24,7 +26,7 @@ jest.mock("./Utils", () => ({
 
   promiseLimit:
     () =>
-    <T extends () => unknown>(callback: T): unknown =>
+    (callback: () => unknown): unknown =>
       callback(),
 
   waitUntil: (callback: () => void): true => {
@@ -102,9 +104,9 @@ const FSMock = FS as {
 };
 
 const UtilsMock = Utils as {
-  cacheEnabled: typeof import("./Utils").cacheEnabled;
-
   fetchLite: unknown;
+
+  cacheEnabled(): boolean;
 };
 
 function dependenciesAsChildren(
@@ -130,9 +132,8 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
   const windowsInformation: Array<[string, string[]]> = [];
 
-  const subscriptions: Array<[string, (...arguments_: ExplicitAny[]) => void]> =
-    [];
-  const commands: Array<[string, (...arguments_: ExplicitAny[]) => void]> = [];
+  const subscriptions: Array<[string, (...args: ExplicitAny[]) => void]> = [];
+  const commands: Array<[string, (...args: ExplicitAny[]) => void]> = [];
 
   const packageManager = options.packageManager ?? PackageManager.NPM;
 
@@ -157,6 +158,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
       for (const layer of documentLayers) {
         for (const line of layer.lines.values()) {
+          // eslint-disable-next-line @typescript-eslint/prefer-destructuring
           const lineIndex = line.range.start.line;
 
           decorations[lineIndex] ??= [];
@@ -348,7 +350,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
   vscodeMock.commands.registerCommand = (
     name: string,
-    callback: (...arguments_: ExplicitAny[]) => void,
+    callback: (...args: ExplicitAny[]) => void,
   ): number => commands.push([name, callback]);
 
   vscodeMock.window.activeTextEditor = editor;
@@ -367,6 +369,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     return items[0];
   };
 
+  // eslint-disable-next-line @typescript-eslint/prefer-destructuring
   vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage;
 
   vscodeMock.window.createOutputChannel = jest.fn(() => ({
