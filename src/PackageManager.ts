@@ -16,7 +16,13 @@ const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/;
 type PackagesVersions = Map<string, Cache<Promise<string[] | null>>>;
 
 interface NPMRegistryPackage {
-  versions?: Record<string, unknown>;
+  versions?: Record<
+    string,
+    {
+      version: string;
+      deprecated?: string;
+    }
+  >;
 }
 
 // The `npm view` cache.
@@ -109,7 +115,9 @@ export async function getPackageVersions(
     url: `https://registry.npmjs.org/${name}`,
   }).then(async (data): Promise<string[] | null> => {
     if (data?.versions) {
-      return Object.keys(data.versions);
+      return Object.values(data.versions)
+        .filter(({ deprecated }) => deprecated === undefined)
+        .map(({ version }) => version);
     }
 
     // Uses `npm view` as a fallback.

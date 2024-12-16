@@ -47,8 +47,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:json",
-    "onFile:package.json"
+    "onLanguage:json"
   ],
   "main": "./out/extension.js",
   "devDependencies": {
