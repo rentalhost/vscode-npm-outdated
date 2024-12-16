@@ -190,6 +190,20 @@ describe("package diagnostics", () => {
     expect(decorations[0]).toContain("Update available:");
   });
 
+  it("valid optional dependency, newer version available", async () => {
+    expect.assertions(3);
+
+    const { decorations, diagnostics } = await vscodeSimulator({
+      packageJson: { optionalDependencies: { "npm-outdated": "^1.0.0" } },
+      packagesInstalled: { "npm-outdated": "1.0.0" },
+      packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
+    });
+
+    expect(diagnostics[0]?.message).toContain("Newer version");
+    expect(diagnostics[0]?.message).toContain("1.0.1");
+    expect(decorations[0]).toContain("Update available:");
+  });
+
   it("valid dependency, package version not available", async () => {
     expect.assertions(2);
 

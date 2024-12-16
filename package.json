@@ -26,8 +26,7 @@
     "vscode"
   ],
   "scripts": {
-    "clean": "rimraf ./out",
-    "vscode:prepublish": "npm run clean && npm run build:base -- --minify && swc ./out/extension.js -o ./out/extension.js",
+    "vscode:prepublish": "npm run build:base -- --minify && swc ./out/extension.js -o ./out/extension.js",
     "vscode:package": "npm run vscode:prepublish && vsce package",
     "build:base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc",

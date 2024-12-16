@@ -2,6 +2,7 @@
 
 ## 3.3.0 - 15/12/2024
 
+- Added support to `optionalDependencies`;
 - Fixes an issue where packages versions were no longer reprocessed when there were too many packages due to the way data from NPM was handled;
 
 ## 3.2.0 - 03/02/2024

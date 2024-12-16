@@ -62,6 +62,12 @@ export async function getDocumentPackages(
                 document,
                 symbols.find((symbol) => symbol.name === "peerDependencies"),
               ),
+              ...mapDependencyRange(
+                document,
+                symbols.find(
+                  (symbol) => symbol.name === "optionalDependencies",
+                ),
+              ),
             ].map((documentPackage) => [documentPackage.name, documentPackage]),
           ),
         );

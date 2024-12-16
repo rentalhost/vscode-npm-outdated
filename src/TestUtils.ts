@@ -58,6 +58,7 @@ interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
 }
 
 interface SimulatorOptions {
@@ -335,6 +336,15 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
             options.packageJson.peerDependencies,
           ),
           name: "peerDependencies",
+        });
+      }
+
+      if (options.packageJson.optionalDependencies) {
+        symbols.push({
+          children: dependenciesAsChildren(
+            options.packageJson.optionalDependencies,
+          ),
+          name: "optionalDependencies",
         });
       }
 

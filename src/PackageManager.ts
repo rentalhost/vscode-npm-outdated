@@ -28,6 +28,7 @@ interface NPMListResponse {
   dependencies?: NPMDependencies;
   devDependencies?: NPMDependencies;
   peerDependencies?: NPMDependencies;
+  optionalDependencies?: NPMDependencies;
 }
 
 const packageManagerExecCache = new Cache<Record<string, boolean>>({});
@@ -68,6 +69,7 @@ function getPackagesInstalledEntries(
     ...packages.dependencies,
     ...packages.devDependencies,
     ...packages.peerDependencies,
+    ...packages.optionalDependencies,
   };
 
   if (Object.keys(dependencies).length > 0) {

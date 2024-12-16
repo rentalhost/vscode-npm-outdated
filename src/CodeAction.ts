@@ -147,7 +147,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
     const diagnosticsAll = languages.getDiagnostics(document.uri);
 
     // Get all diagnostics from this extension.
-     
+
     const diagnostics = diagnosticsAll.filter(
       (diagnostic) =>
         typeof diagnostic.code === "object" &&
