@@ -7,11 +7,12 @@ node_modules/**
 
 locales/bundle.l10n.jsonc
 
-.eslintignore
+.env
 .prettierignore
 .gitignore
 .swcrc
 
+eslint.config.mjs
 jest.config.js
 tsconfig.json
 pnpm-lock.yaml

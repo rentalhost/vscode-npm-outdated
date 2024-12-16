@@ -2,7 +2,7 @@
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated-plus",
   "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm and pnpm.",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "publisher": "rentalhost",
   "author": "David Rodrigues",
   "l10n": "./locales",
@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "vscode:prepublish": "npm run build:base -- --minify && swc ./out/extension.js -o ./out/extension.js",
-    "vscode:package": "npm run vscode:prepublish && vsce package",
+    "vscode:package": "npm run vscode:prepublish && vsce package --no-dependencies",
     "build:base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc",
     "watch": "tsc -watch",

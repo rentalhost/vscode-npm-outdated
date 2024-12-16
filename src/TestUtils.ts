@@ -197,7 +197,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
             versions: Object.fromEntries(
               options.packagesRepository[name]?.map((version) => [
                 version,
-                null,
+                { version },
               ]) as [],
             ),
           });
