@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0 - 15/12/2024
+
+- Fixes an issue where packages versions were no longer reprocessed when there were too many packages due to the way data from NPM was handled;
+
 ## 3.2.0 - 03/02/2024
 
 - The "Do it for me" button now supports executing either the `install` command (set as default) or the `update` command;

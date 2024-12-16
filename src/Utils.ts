@@ -101,7 +101,7 @@ export async function waitUntil(
 // If the concurrency number is zero then they will be processed immediately.
 export function promiseLimit(
   concurrency: number,
-): <T>(function_: () => T) => OptionalPromise<T> {
+): <T>(fn: () => T) => OptionalPromise<T> {
   // If concurrency is zero, all promises are executed immediately.
   if (concurrency === 0) {
     return <T>(fn: () => T): T => fn();
@@ -150,18 +150,17 @@ export async function fetchLite<T>(options: FetchLite) {
           });
 
           response.on("end", () => {
+            const responseBuffer = Buffer.concat(responseBuffers);
+
             if (response.headers["content-encoding"] === undefined) {
-              resolve(JSON.parse(responseBuffers.toString()) as T);
+              resolve(JSON.parse(responseBuffer.toString()) as T);
 
               return;
             }
 
-            brotliDecompress(
-              Buffer.concat(responseBuffers),
-              (_error, contents) => {
-                resolve(JSON.parse(contents.toString()) as T);
-              },
-            );
+            brotliDecompress(responseBuffer, (_error, contents) => {
+              resolve(JSON.parse(contents.toString()) as T);
+            });
           });
         },
       );
