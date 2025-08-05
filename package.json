@@ -78,6 +78,22 @@
     "vscode.npm"
   ],
   "contributes": {
+    "commands": [
+      {
+        "command": "npm-outdated-plus.toggleEnabled",
+        "title": "%npm-outdated-plus.commands.toggleEnabled.title%",
+        "category": "npm-outdated-plus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceExtname == .json && resourceFilename == package.json",
+          "command": "npm-outdated-plus.toggleEnabled",
+          "group": "1_editor"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "npm-outdated-plus",
