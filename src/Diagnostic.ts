@@ -32,6 +32,7 @@ import {
   getDecorationsMode,
   getParallelProcessesLimit,
   identifySecurityAdvisories,
+  isEnabledForFile,
 } from "./Settings";
 import { icons } from "./Theme";
 import { promiseLimit } from "./Utils";
@@ -334,6 +335,13 @@ export async function generatePackagesDiagnostics(
   document: TextDocument,
   diagnosticsCollection: DiagnosticCollection,
 ): Promise<void> {
+  // Early return if extension is disabled for this file
+  if (!isEnabledForFile(document.uri)) {
+    diagnosticsCollection.delete(document.uri);
+    DocumentDecorationManager.flushDocument(document);
+    return;
+  }
+
   // Soft-disable extension if none Package Manager installed is detected.
   if ((await getPackageManager(document)) === PackageManager.NONE) {
     return;

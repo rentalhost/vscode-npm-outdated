@@ -4,12 +4,60 @@ import { dirname } from "node:path";
 import { commands, l10n, window } from "vscode";
 
 import { name as packageName } from "./plugin.json";
-import { getDoItForMeAction } from "./Settings";
+import { getDoItForMeAction, toggleEnabledForFile } from "./Settings";
 
-import type { OutputChannel, TextDocument } from "vscode";
+import type { DiagnosticCollection, OutputChannel, TextDocument } from "vscode";
+
+// Store reference to diagnostics collection for refresh
+let diagnosticsCollection: DiagnosticCollection | null = null;
+
+export function setDiagnosticsCollection(collection: DiagnosticCollection): void {
+  diagnosticsCollection = collection;
+}
 
 export const COMMAND_INSTALL = `${packageName}.install`;
 export const COMMAND_INSTALL_REQUEST = `${packageName}.installRequest`;
+export const COMMAND_TOGGLE_ENABLED = `${packageName}.toggleEnabled`;
+
+export function toggleEnabled(): void {
+  const { activeTextEditor } = window;
+  
+  if (!activeTextEditor) {
+    void window.showWarningMessage(
+      l10n.t("No active editor found. Please open a package.json file first.")
+    );
+    return;
+  }
+
+  const { document } = activeTextEditor;
+  
+  // Check if it's a package.json file
+  if (!document.fileName.endsWith('package.json')) {
+    void window.showWarningMessage(
+      l10n.t("This command only works with package.json files.")
+    );
+    return;
+  }
+
+  const newState = toggleEnabledForFile(document.uri);
+  const status = newState ? "enabled" : "disabled";
+  const fileName = document.fileName.split('/').pop() ?? 'package.json';
+  
+  void window.showInformationMessage(
+    l10n.t(`npm-outdated-plus has been ${status} for ${fileName}.`)
+  );
+
+  // Trigger a proper refresh of diagnostics
+  if (diagnosticsCollection) {
+    // Clear existing diagnostics first
+    diagnosticsCollection.delete(document.uri);
+    
+    // Force regeneration by importing and calling the diagnostic function
+    void import("./Diagnostic").then(({ generatePackagesDiagnostics }) => {
+      void generatePackagesDiagnostics(document, diagnosticsCollection!);
+    });
+  }
+}
 
 export async function packageInstallRequest(
   document: TextDocument,
