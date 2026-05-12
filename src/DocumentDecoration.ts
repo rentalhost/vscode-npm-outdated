@@ -1,16 +1,16 @@
 import { prerelease } from "semver";
 import { l10n, Range, window } from "vscode";
 
-import { DocumentDecorationManager } from "./DocumentDecorationManager";
-import { Message } from "./Message";
-import { getDecorationsMode } from "./Settings";
-import { icons, margins, themeDark, themeLight } from "./Theme";
-import { lazyCallback } from "./Utils";
-
-import type { PackageRelatedDiagnostic } from "./Diagnostic";
-import type { PackageInfo } from "./PackageInfo";
-import type { PackageAdvisory } from "./PackageManager";
+import type { PackageRelatedDiagnostic } from "@/Diagnostic";
+import type { PackageInfo } from "@/PackageInfo";
+import type { PackageAdvisory } from "@/PackageManager";
 import type { TextDocument, TextEditor } from "vscode";
+
+import { DocumentDecorationManager } from "@/DocumentDecorationManager";
+import { Message } from "@/Message";
+import { getDecorationsMode } from "@/Settings";
+import { icons, margins, themeDark, themeLight } from "@/Theme";
+import { lazyCallback } from "@/Utils";
 
 export class DocumentDecoration {
   private readonly editors: TextEditor[];

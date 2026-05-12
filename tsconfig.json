@@ -11,11 +11,11 @@
     "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "outDir": "./dist",
+    "outDir": "./out",
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "types": ["node", "vscode"],
+    "types": ["node", "vscode", "jest"],
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["jest.config.ts", "src/**/*.ts"],

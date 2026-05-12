@@ -39,24 +39,22 @@ export function lazyCallback<T, A>(
       // If no callback is running right now, then run the current one immediately.
       isRunning = true;
 
-      if (wait === 0) {
-        await Promise.resolve(callback(...args));
-      } else {
-        await new Promise((resolve) => {
-          setTimeout(() => {
-            // Must execute the callback with the most recent arguments, if any.
-            if (argumentsNext) {
-              const argumentsNextCopied = argumentsNext;
+      await (wait === 0
+        ? Promise.resolve(callback(...args))
+        : new Promise((resolve) => {
+            setTimeout(() => {
+              // Must execute the callback with the most recent arguments, if any.
+              if (argumentsNext) {
+                const argumentsNextCopied = argumentsNext;
 
-              argumentsNext = undefined;
+                argumentsNext = undefined;
 
-              void Promise.resolve(callback(...argumentsNextCopied)).then(resolve);
-            } else {
-              void Promise.resolve(callback(...args)).then(resolve);
-            }
-          }, wait);
-        });
-      }
+                void Promise.resolve(callback(...argumentsNextCopied)).then(resolve);
+              } else {
+                void Promise.resolve(callback(...args)).then(resolve);
+              }
+            }, wait);
+          }));
 
       // If afterwards there is already some callback waiting to be executed, it starts it after the delay.
       // Note that this will only happen after the full completion of the previous process.

@@ -3,10 +3,10 @@ import { dirname } from "node:path";
 
 import { commands, l10n, window } from "vscode";
 
-import { name as packageName } from "./plugin.json";
-import { getDoItForMeAction } from "./Settings";
-
 import type { OutputChannel, TextDocument } from "vscode";
+
+import { name as packageName } from "@/plugin.json";
+import { getDoItForMeAction } from "@/Settings";
 
 export const COMMAND_INSTALL = `${packageName}.install`;
 

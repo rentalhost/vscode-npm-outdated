@@ -1,9 +1,9 @@
 import { commands, Range } from "vscode";
 
-import { PackageInfo } from "./PackageInfo";
-import { waitUntil } from "./Utils";
-
 import type { DocumentSymbol, TextDocument } from "vscode";
+
+import { PackageInfo } from "@/PackageInfo";
+import { waitUntil } from "@/Utils";
 
 // Process packages of a certain dependency type.
 // Returns existing packages, their versions and the package range.

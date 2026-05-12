@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { DiagnosticSeverity } from "vscode";
 
-import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "./Command";
-import { PackageManager } from "./PackageManager";
-import { vscodeSimulator } from "./TestUtils";
-import { icons } from "./Theme";
+import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "@/Command";
+import { PackageManager } from "@/PackageManager";
+import { vscodeSimulator } from "@/TestUtils";
+import { icons } from "@/Theme";
 
 jest.mock("node:child_process", () => ({
   __esModule: true,

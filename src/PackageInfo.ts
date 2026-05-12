@@ -1,10 +1,10 @@
 import { coerce, diff, gt, gte, maxSatisfying, prerelease, valid, validRange } from "semver";
 
-import { getPackagesInstalled, getPackageVersions } from "./PackageManager";
-import { getLevel, hasMajorUpdateProtection } from "./Settings";
-
 import type { ReleaseType } from "semver";
 import type { Range, TextDocument } from "vscode";
+
+import { getPackagesInstalled, getPackageVersions } from "@/PackageManager";
+import { getLevel, hasMajorUpdateProtection } from "@/Settings";
 
 const PACKAGE_NAME_REGEXP = /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/;
 
@@ -17,9 +17,10 @@ const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/;
 const PACKAGE_VERSION_GITHUB_REGEX = /^[\da-z][\w-]*[\da-z]\//i;
 
 const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
-  major: 2,
-  minor: 1,
-  patch: 0,
+  major: 3,
+  minor: 2,
+  patch: 1,
+  release: 0,
   // Ignore all after:
   premajor: -1,
   preminor: -1,

@@ -1,11 +1,11 @@
 import { CodeAction, CodeActionKind, l10n, languages, WorkspaceEdit } from "vscode";
 
-import { COMMAND_INSTALL_REQUEST } from "./Command";
-import { DiagnosticType, PackageRelatedDiagnostic } from "./Diagnostic";
-import { name as packageName } from "./plugin.json";
-import { hasMajorUpdateProtection } from "./Settings";
-
 import type { CodeActionProvider, Range, TextDocument } from "vscode";
+
+import { COMMAND_INSTALL_REQUEST } from "@/Command";
+import { DiagnosticType, PackageRelatedDiagnostic } from "@/Diagnostic";
+import { name as packageName } from "@/plugin.json";
+import { hasMajorUpdateProtection } from "@/Settings";
 
 const VERSION_PREFIX_REGEXP = /^\s*(?<op>[=^~]|>=|<=)/;
 
@@ -27,7 +27,7 @@ async function createAction(
       const isLatest = await diagnostic.packageRelated.isVersionLatestAlreadyInstalled();
 
       if (!isLatest) {
-        throw new Error();
+        throw new Error("Outdated package");
       }
 
       return true;
@@ -88,7 +88,11 @@ async function createUpdateSingleAction(
 
 const SINGLE_PACKAGE_TO_INSTALL = 1;
 
-function createInstallAction(document: TextDocument, requiresInstallCount: number): CodeAction {
+// eslint-disable-next-line @typescript-eslint/promise-function-async
+function createInstallAction(
+  document: TextDocument,
+  requiresInstallCount: number,
+): Promise<CodeAction> {
   const action = new CodeAction(
     requiresInstallCount === SINGLE_PACKAGE_TO_INSTALL
       ? l10n.t("Install package")
@@ -102,7 +106,7 @@ function createInstallAction(document: TextDocument, requiresInstallCount: numbe
     title: "update",
   };
 
-  return action;
+  return Promise.resolve(action);
 }
 
 async function updatePackageVersion(
@@ -112,7 +116,7 @@ async function updatePackageVersion(
 ): Promise<void> {
   const line = document.lineAt(diagnostic.range.start.line);
   const version = line.text.slice(diagnostic.range.start.character, diagnostic.range.end.character);
-  const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.groups?.op ?? "";
+  const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.groups?.["op"] ?? "";
   const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
 
   action.edit?.replace(document.uri, diagnostic.range, versionPrefix + versionUpdated);
@@ -156,13 +160,13 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
 
     if (diagnosticsSelected.length === 0) {
       if (requiresInstallCount) {
-        return Promise.all([createInstallAction(document, requiresInstallCount)]);
+        return [await createInstallAction(document, requiresInstallCount)];
       }
 
       return [];
     }
 
-    const diagnosticsPromises: Array<CodeAction | Promise<CodeAction>> = [];
+    const diagnosticsPromises: Array<Promise<CodeAction>> = [];
 
     let diagnosticsSelectedFiltered = diagnosticsSelected;
 

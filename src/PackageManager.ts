@@ -4,12 +4,12 @@ import { dirname } from "node:path";
 
 import { prerelease } from "semver";
 
-import { Cache } from "./Cache";
-import { getCacheLifetime } from "./Settings";
-import { cacheEnabled, fetchLite } from "./Utils";
-
-import type { PackageInfo } from "./PackageInfo";
+import type { PackageInfo } from "@/PackageInfo";
 import type { TextDocument } from "vscode";
+
+import { Cache } from "@/Cache";
+import { getCacheLifetime } from "@/Settings";
+import { cacheEnabled, fetchLite } from "@/Utils";
 
 const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/;
 
@@ -302,14 +302,14 @@ export async function getPackagesAdvisories(
         packageInfo.isVersionComplex() ||
         packagesAdvisoriesCache.get(packageInfo.name)?.isValid(getCacheLifetime()) === true
       ) {
-        throw new Error();
+        throw new Error("Invalid package info");
       }
 
       // We need to push all versions to the NPM Registry.
       // Thus, we can check in real time when the package version is modified by the user.
       return getPackageVersions(packageInfo.name).then((packageVersions) => {
         if (!packageVersions) {
-          throw new Error();
+          throw new Error("No package versions found");
         }
 
         return [

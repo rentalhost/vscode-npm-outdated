@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable import/no-namespace */
+/* eslint-disable importPlugin/no-namespace */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
+/* eslint-disable unicorn/consistent-function-scoping */
 import * as ChildProcess from "node:child_process";
 import * as FS from "node:fs";
 import { sep } from "node:path";
@@ -9,15 +11,15 @@ import { sep } from "node:path";
 import * as vscode from "vscode";
 import { Range } from "vscode";
 
-import { PackageJsonCodeActionProvider } from "./CodeAction";
-import { DocumentDecorationManager } from "./DocumentDecorationManager";
-import { activate } from "./extension";
-import { PackageManager } from "./PackageManager";
-import { name as packageName } from "./plugin.json";
-import * as Utils from "./Utils";
-
-import type { PackageAdvisory } from "./PackageManager";
+import type { PackageAdvisory } from "@/PackageManager";
 import type { ReleaseType } from "semver";
+
+import { PackageJsonCodeActionProvider } from "@/CodeAction";
+import { DocumentDecorationManager } from "@/DocumentDecorationManager";
+import { activate } from "@/extension";
+import { PackageManager } from "@/PackageManager";
+import { name as packageName } from "@/plugin.json";
+import * as Utils from "@/Utils";
 
 jest.mock("./Utils", () => ({
   __esModule: true,

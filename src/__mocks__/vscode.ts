@@ -1,6 +1,7 @@
 /* eslint-disable id-length */
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable max-classes-per-file */
+
 export class Range {
   public start: { character: number; line: number };
 

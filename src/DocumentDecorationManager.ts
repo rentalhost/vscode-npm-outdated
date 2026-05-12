@@ -1,8 +1,8 @@
 import { window } from "vscode";
 
-import { DocumentDecorationLayer } from "./DocumentDecorationLayer";
-
 import type { TextDocument } from "vscode";
+
+import { DocumentDecorationLayer } from "@/DocumentDecorationLayer";
 
 // We need to create some decoration levels as needed.
 // Each layer must have its own style implementation, so that the message order is respected.
