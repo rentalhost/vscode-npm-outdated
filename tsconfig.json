@@ -18,6 +18,6 @@
     "types": ["node", "vscode", "jest"],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["jest.config.ts", "src/**/*.ts"],
+  "include": ["jest.config.ts", "esbuild.config.ts", "src/**/*.ts"],
   "exclude": ["node_modules"]
 }

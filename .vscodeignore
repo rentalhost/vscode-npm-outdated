@@ -12,10 +12,10 @@ locales/bundle.l10n.jsonc
 .gitignore
 .swcrc
 
-eslint.config.mjs
-jest.config.js
+bun.lock
+eslint.config.ts
+jest.config.ts
 tsconfig.json
-pnpm-lock.yaml
 
 out/**
 !out/extension.js

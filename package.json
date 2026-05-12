@@ -28,10 +28,13 @@
     "url": "https://github.com/rentalhost/vscode-npm-outdated-plus.git"
   },
   "publisher": "rentalhost",
+  "type": "module",
   "main": "./out/extension.js",
   "scripts": {
-    "vscode:prepublish": "npm run build:base -- --minify && swc ./out/extension.js -o ./out/extension.js",
+    "vscode:prepublish": "npm run build:esbuild",
     "vscode:package": "npm run vscode:prepublish && vsce package --no-dependencies",
+    "build:esbuild": "tsx esbuild.config.ts",
+    "build:esbuild:watch": "tsx --watch esbuild.config.ts",
     "build:base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc",
     "watch": "tsc -watch",
@@ -43,7 +46,8 @@
     "test:watch": "jest --watch --detectOpenHandles"
   },
   "dependencies": {
-    "semver": "^7.8.0"
+    "semver": "^7.8.0",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@rheactor/eslint-config-rheactor": "github:rheactor/eslint-config-rheactor#main",
@@ -151,6 +155,6 @@
   ],
   "icon": "assets/icon.png",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.118.0"
   }
 }
