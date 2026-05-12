@@ -1,5 +1,4 @@
 /* eslint-disable id-length */
-/* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable max-classes-per-file */
 export class Range {

@@ -9,6 +9,7 @@ import { getDoItForMeAction } from "./Settings";
 import type { OutputChannel, TextDocument } from "vscode";
 
 export const COMMAND_INSTALL = `${packageName}.install`;
+
 export const COMMAND_INSTALL_REQUEST = `${packageName}.installRequest`;
 
 export async function packageInstallRequest(document: TextDocument): Promise<void> {

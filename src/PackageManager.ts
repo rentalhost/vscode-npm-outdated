@@ -197,7 +197,6 @@ export const packagesInstalledCaches = new Map<
 // It tries to parse the string starting from the beginning and,
 // if that fails, continues to try parsing from each newline character
 // until it either succeeds or runs out of new data to parse.
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function parseJSON<T>(data: string): T {
   let dataOffset = 0;
 
@@ -286,7 +285,6 @@ export interface PackageAdvisory {
   severity: string;
   title: string;
   url: string;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   vulnerable_versions: string;
 }
 

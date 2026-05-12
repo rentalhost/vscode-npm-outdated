@@ -116,7 +116,7 @@ function dependenciesAsChildren(dependencies: Record<string, string>): vscode.Do
       ({
         detail: version,
         name,
-        range: new Range(entryIndex, 0, entryIndex, 0) as unknown as Range,
+        range: new Range(entryIndex, 0, entryIndex, 0),
       }) as vscode.DocumentSymbol,
   );
 }
@@ -155,7 +155,6 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
       for (const layer of documentLayers) {
         for (const line of layer.lines.values()) {
-          // eslint-disable-next-line @typescript-eslint/prefer-destructuring
           const lineIndex = line.range.start.line;
 
           decorations[lineIndex] ??= [];
@@ -361,7 +360,6 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     return items[0];
   };
 
-  // eslint-disable-next-line @typescript-eslint/prefer-destructuring
   vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage;
 
   vscodeMock.window.createOutputChannel = jest.fn(() => ({

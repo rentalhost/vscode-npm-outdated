@@ -160,7 +160,6 @@ describe("utils", () => {
     expect.assertions(1);
 
     const fetchSuccess = await fetchLite({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       body: { "npm-outdated": ["2.0.3"] },
       method: "post",
       url: "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
