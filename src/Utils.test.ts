@@ -180,9 +180,7 @@ describe("utils", () => {
 
     expect(fetchSuccess).toHaveProperty("lodash");
     expect(fetchSuccess.lodash).toHaveLength(5);
-    expect(fetchSuccess.lodash[0]!.url).toBe(
-      "https://github.com/advisories/GHSA-35jh-r3h4-6jhm",
-    );
+    expect(fetchSuccess.lodash[0]!.url).toBe("https://github.com/advisories/GHSA-35jh-r3h4-6jhm");
   });
 
   it("fetchLite: access to NPM Registry (package)", async () => {

@@ -1,55 +1,50 @@
 {
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated-plus",
+  "version": "4.0.0",
   "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm and pnpm.",
-  "version": "3.3.0",
-  "publisher": "rentalhost",
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "dependencies",
+    "npm",
+    "outdated",
+    "package.json",
+    "pnpm",
+    "update",
+    "vscode",
+    "vscode-extension"
+  ],
+  "homepage": "https://github.com/rentalhost/vscode-npm-outdated#readme",
+  "bugs": {
+    "url": "https://github.com/rentalhost/vscode-npm-outdated/issues"
+  },
+  "license": "ISC",
   "author": "David Rodrigues",
-  "l10n": "./locales",
   "repository": {
     "type": "git",
     "url": "https://github.com/rentalhost/vscode-npm-outdated-plus.git"
   },
-  "bugs": {
-    "url": "https://github.com/rentalhost/vscode-npm-outdated/issues"
-  },
-  "homepage": "https://github.com/rentalhost/vscode-npm-outdated#readme",
-  "license": "ISC",
-  "keywords": [
-    "npm",
-    "pnpm",
-    "outdated",
-    "package.json",
-    "update",
-    "dependencies",
-    "vscode-extension",
-    "vscode"
-  ],
+  "publisher": "rentalhost",
+  "main": "./out/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run build:base -- --minify && swc ./out/extension.js -o ./out/extension.js",
     "vscode:package": "npm run vscode:prepublish && vsce package --no-dependencies",
     "build:base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "tsc",
     "watch": "tsc -watch",
-    "prettier": "prettier --check ./src",
-    "prettier:fix": "prettier --write ./src",
+    "oxfmt": "oxfmt --check ./src ./locales ./.vscode ./*.mjs ./*.js ./*.json ./*.md",
+    "oxfmt:fix": "oxfmt --write ./src ./locales ./.vscode ./*.mjs ./*.js ./*.json ./*.md",
     "eslint": "eslint ./src",
     "eslint:fix": "eslint --fix ./src",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch --detectOpenHandles"
   },
-  "icon": "assets/icon.png",
-  "engines": {
-    "vscode": "^1.96.0"
+  "dependencies": {
+    "semver": "^7.8.0"
   },
-  "categories": [
-    "Linters",
-    "Other"
-  ],
-  "activationEvents": [
-    "onLanguage:json"
-  ],
-  "main": "./out/extension.js",
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@swc/cli": "^0.5.2",
@@ -66,17 +61,12 @@
     "eslint-plugin-unicorn": "^56.0.1",
     "globals": "^15.15.0",
     "jest": "^29.7.0",
-    "prettier": "^3.8.3",
+    "oxfmt": "^0.49.0",
     "ts-jest": "^29.4.9",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.3"
   },
-  "dependencies": {
-    "semver": "^7.8.0"
-  },
-  "extensionDependencies": [
-    "vscode.npm"
-  ],
+  "l10n": "./locales",
   "contributes": {
     "configuration": {
       "type": "object",
@@ -156,5 +146,15 @@
         }
       }
     }
+  },
+  "activationEvents": [
+    "onLanguage:json"
+  ],
+  "extensionDependencies": [
+    "vscode.npm"
+  ],
+  "icon": "assets/icon.png",
+  "engines": {
+    "vscode": "^1.96.0"
   }
 }

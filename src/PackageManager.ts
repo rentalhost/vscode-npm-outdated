@@ -58,8 +58,7 @@ async function supportsPackageManager(
     const cwd = dirname(document.uri.fsPath);
 
     exec(`${cmd} --version`, { cwd }, (error, stdout) => {
-      const isInstalled =
-        !error && PACKAGE_VERSION_REGEXP.test(stdout.trimEnd());
+      const isInstalled = !error && PACKAGE_VERSION_REGEXP.test(stdout.trimEnd());
 
       packageManagerExecCache.value[cmd] = isInstalled;
 
@@ -68,9 +67,7 @@ async function supportsPackageManager(
   });
 }
 
-function getPackagesInstalledEntries(
-  packages: NPMListResponse,
-): PackagesInstalled | null {
+function getPackagesInstalledEntries(packages: NPMListResponse): PackagesInstalled | null {
   const dependencies: NPMDependencies = {
     ...packages.dependencies,
     ...packages.devDependencies,
@@ -81,9 +78,10 @@ function getPackagesInstalledEntries(
   if (Object.keys(dependencies).length > 0) {
     // The `npm ls` command returns a lot of information.
     // We only need the name of the installed package and its version.
-    const packageEntries = Object.entries(dependencies).map(
-      ([packageName, packageInfo]) => [packageName, packageInfo.version],
-    );
+    const packageEntries = Object.entries(dependencies).map(([packageName, packageInfo]) => [
+      packageName,
+      packageInfo.version,
+    ]);
 
     return Object.fromEntries(packageEntries) as PackagesInstalled;
   }
@@ -94,9 +92,7 @@ function getPackagesInstalledEntries(
 const packagesAdvisoriesCache = new Map<string, Cache<PackageAdvisory[]>>();
 
 // Get all package versions through `npm view` command.
-export async function getPackageVersions(
-  name: string,
-): Promise<string[] | null> {
+export async function getPackageVersions(name: string): Promise<string[] | null> {
   // If the package query is in the cache (even in the process of being executed), return it.
   // This ensures that we will not have duplicate execution process while it is within lifetime.
   if (cacheEnabled()) {
@@ -147,15 +143,10 @@ export async function getPackageVersions(
 
 export type PackagesInstalled = Record<string, string | undefined>;
 
-export const packageManagerCaches = new Map<
-  string,
-  Cache<PackageManager | undefined>
->();
+export const packageManagerCaches = new Map<string, Cache<PackageManager | undefined>>();
 
 // Return the current Package Manager.
-export async function getPackageManager(
-  document: TextDocument,
-): Promise<PackageManager> {
+export async function getPackageManager(document: TextDocument): Promise<PackageManager> {
   const cwd = dirname(document.uri.fsPath);
 
   if (cacheEnabled()) {
@@ -176,10 +167,7 @@ export async function getPackageManager(
   }
 
   // Using PNPM with already installed node_modules/ directory.
-  if (
-    existsSync(`${cwd}/node_modules/.pnpm`) &&
-    (await supportsPackageManager(document, "pnpm"))
-  ) {
+  if (existsSync(`${cwd}/node_modules/.pnpm`) && (await supportsPackageManager(document, "pnpm"))) {
     return setPackageManager(PackageManager.PNPM);
   }
 
@@ -250,9 +238,7 @@ export async function getPackagesInstalled(
             const execResult = parseJSON<[NPMListResponse]>(stdout);
 
             if (Array.isArray(execResult)) {
-              const packagesInstalled = getPackagesInstalledEntries(
-                execResult[0],
-              );
+              const packagesInstalled = getPackagesInstalledEntries(execResult[0]);
 
               if (packagesInstalled !== null) {
                 resolve(packagesInstalled);
@@ -274,9 +260,7 @@ export async function getPackagesInstalled(
     exec("npm ls --json --depth=0", { cwd }, (_error, stdout) => {
       if (stdout) {
         try {
-          const packagesInstalled = getPackagesInstalledEntries(
-            parseJSON(stdout),
-          );
+          const packagesInstalled = getPackagesInstalledEntries(parseJSON(stdout));
 
           if (packagesInstalled !== null) {
             resolve(packagesInstalled);
@@ -318,9 +302,7 @@ export async function getPackagesAdvisories(
         !packageInfo.name ||
         !packageInfo.isNameValid() ||
         packageInfo.isVersionComplex() ||
-        packagesAdvisoriesCache
-          .get(packageInfo.name)
-          ?.isValid(getCacheLifetime()) === true
+        packagesAdvisoriesCache.get(packageInfo.name)?.isValid(getCacheLifetime()) === true
       ) {
         throw new Error();
       }
@@ -334,17 +316,13 @@ export async function getPackagesAdvisories(
 
         return [
           packageInfo.name,
-          packageVersions.filter(
-            (packageVersion) => prerelease(packageVersion) === null,
-          ),
+          packageVersions.filter((packageVersion) => prerelease(packageVersion) === null),
         ] as const;
       });
     }),
   ).then((results) =>
     Object.fromEntries(
-      results
-        .filter((result) => result.status === "fulfilled")
-        .map((result) => result.value),
+      results.filter((result) => result.status === "fulfilled").map((result) => result.value),
     ),
   );
 
@@ -358,13 +336,8 @@ export async function getPackagesAdvisories(
 
     // Fills the packages with their respective advisories.
     if (responseAdvisories) {
-      for (const [packageName, packageAdvisories] of Object.entries(
-        responseAdvisories,
-      )) {
-        packagesAdvisoriesCache.set(
-          packageName,
-          new Cache(packageAdvisories as PackageAdvisory[]),
-        );
+      for (const [packageName, packageAdvisories] of Object.entries(responseAdvisories)) {
+        packagesAdvisoriesCache.set(packageName, new Cache(packageAdvisories as PackageAdvisory[]));
       }
     }
 
@@ -377,9 +350,10 @@ export async function getPackagesAdvisories(
   }
 
   return new Map(
-    [...packagesAdvisoriesCache.entries()].map(
-      ([packageName, packageAdvisory]) => [packageName, packageAdvisory.value],
-    ),
+    [...packagesAdvisoriesCache.entries()].map(([packageName, packageAdvisory]) => [
+      packageName,
+      packageAdvisory.value,
+    ]),
   );
 }
 

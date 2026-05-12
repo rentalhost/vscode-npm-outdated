@@ -8,18 +8,13 @@ import type { TextDocument } from "vscode";
 // Each layer must have its own style implementation, so that the message order is respected.
 // @see https://github.com/microsoft/vscode/issues/169051
 export class DocumentDecorationManager {
-  private static readonly documents = new WeakMap<
-    TextDocument,
-    DocumentDecorationManager
-  >();
+  private static readonly documents = new WeakMap<TextDocument, DocumentDecorationManager>();
 
   public layers = new Map<number, DocumentDecorationLayer>();
 
   // Returns the decoration layers of a document.
   // If the document has never been used, then instantiate and return.
-  public static fromDocument(
-    document: TextDocument,
-  ): DocumentDecorationManager {
+  public static fromDocument(document: TextDocument): DocumentDecorationManager {
     if (!this.documents.has(document)) {
       this.documents.set(document, new DocumentDecorationManager());
     }

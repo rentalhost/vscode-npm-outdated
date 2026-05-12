@@ -1,20 +1,7 @@
 import { dirname, sep } from "node:path";
 
-import {
-  intersects,
-  maxSatisfying,
-  minSatisfying,
-  prerelease,
-  satisfies,
-} from "semver";
-import {
-  Diagnostic,
-  DiagnosticSeverity,
-  l10n,
-  Uri,
-  window,
-  workspace,
-} from "vscode";
+import { intersects, maxSatisfying, minSatisfying, prerelease, satisfies } from "semver";
+import { Diagnostic, DiagnosticSeverity, l10n, Uri, window, workspace } from "vscode";
 
 import { getDocumentPackages } from "./Document";
 import { DocumentDecoration } from "./DocumentDecoration";
@@ -88,52 +75,38 @@ async function detectAdvisoryDiagnostics(
     ];
 
     // Filters available versions that are not affected by any type of advisory.
-    const versionsNotAffected = (await packageInfo.getVersions())!.filter(
-      (packageVersion) => {
-        if (prerelease(packageVersion)) {
+    const versionsNotAffected = (await packageInfo.getVersions())!.filter((packageVersion) => {
+      if (prerelease(packageVersion)) {
+        return false;
+      }
+
+      for (const advisory of packageAdvisories) {
+        if (satisfies(packageVersion, advisory.vulnerable_versions)) {
           return false;
         }
+      }
 
-        for (const advisory of packageAdvisories) {
-          if (satisfies(packageVersion, advisory.vulnerable_versions)) {
-            return false;
-          }
-        }
-
-        return true;
-      },
-    );
+      return true;
+    });
 
     // Gets the closest possible future version that does not have the problem.
-    const versionFutureNotAffected = minSatisfying(
-      versionsNotAffected,
-      `>${versionNormalized}`,
-    );
+    const versionFutureNotAffected = minSatisfying(versionsNotAffected, `>${versionNormalized}`);
 
     if (versionFutureNotAffected === null) {
       advisoryMessages.push(l10n.t("No fix available yet."));
 
       // If there is no future version available then it suggests a downgrade.
       // Gets the largest available version in which a flaw does not exist.
-      const versionPastNotAffected = maxSatisfying(
-        versionsNotAffected,
-        `<${versionNormalized}`,
-      );
+      const versionPastNotAffected = maxSatisfying(versionsNotAffected, `<${versionNormalized}`);
 
       if (versionPastNotAffected !== null) {
         advisoryMessages.push(
-          l10n.t(
-            "If possible, downgrade to version {0}.",
-            versionPastNotAffected,
-          ),
+          l10n.t("If possible, downgrade to version {0}.", versionPastNotAffected),
         );
       }
     } else {
       advisoryMessages.push(
-        l10n.t(
-          "Please upgrade to version {0} or higher.",
-          versionFutureNotAffected,
-        ),
+        l10n.t("Please upgrade to version {0} or higher.", versionFutureNotAffected),
       );
     }
 
@@ -189,9 +162,7 @@ export function diagnosticSubscribe(
     "**/{package.json,package-lock.json,pnpm-lock.yaml}",
   );
 
-  const nodeModulesWatcher = workspace.createFileSystemWatcher(
-    "**/node_modules/**/*",
-  );
+  const nodeModulesWatcher = workspace.createFileSystemWatcher("**/node_modules/**/*");
 
   context.subscriptions.push(
     // Trigger when the active editor changes.
@@ -305,11 +276,7 @@ export async function getPackageDiagnostic(
   if (!(await packageInfo.isVersionMaxed())) {
     return new PackageRelatedDiagnostic(
       packageInfo.versionRange,
-      l10n.t(
-        'Newer version of "{0}" is available: {1}.',
-        packageInfo.name,
-        versionLatest,
-      ),
+      l10n.t('Newer version of "{0}" is available: {1}.', packageInfo.name, versionLatest),
       DiagnosticSeverity.Warning,
       document,
       packageInfo,
@@ -343,14 +310,9 @@ export async function generatePackagesDiagnostics(
   const packagesInfos = Object.values(await getDocumentPackages(document));
 
   const documentDecorations =
-    getDecorationsMode() === "disabled"
-      ? undefined
-      : new DocumentDecoration(document);
+    getDecorationsMode() === "disabled" ? undefined : new DocumentDecoration(document);
 
-  const documentDiagnostics = new DocumentDiagnostics(
-    document,
-    diagnosticsCollection,
-  );
+  const documentDiagnostics = new DocumentDiagnostics(document, diagnosticsCollection);
 
   if (!documentDecorations) {
     DocumentDecorationManager.flushDocument(document);
@@ -373,19 +335,13 @@ export async function generatePackagesDiagnostics(
       return parallelProcessing(async () => {
         documentDecorations?.setCheckingMessage(packageInfo.getLine());
 
-        const packageDiagnostic = await getPackageDiagnostic(
-          document,
-          packageInfo,
-        );
+        const packageDiagnostic = await getPackageDiagnostic(document, packageInfo);
 
         if (packageDiagnostic !== undefined) {
           documentDiagnostics.push(packageDiagnostic);
 
           if (PackageRelatedDiagnostic.is(packageDiagnostic)) {
-            return documentDecorations?.setUpdateMessage(
-              packageInfo.getLine(),
-              packageDiagnostic,
-            );
+            return documentDecorations?.setUpdateMessage(packageInfo.getLine(), packageDiagnostic);
           }
 
           if (packageDiagnostic.severity === DiagnosticSeverity.Error) {

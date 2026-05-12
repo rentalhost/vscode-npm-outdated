@@ -50,9 +50,7 @@ export function lazyCallback<T, A>(
 
               argumentsNext = undefined;
 
-              void Promise.resolve(callback(...argumentsNextCopied)).then(
-                resolve,
-              );
+              void Promise.resolve(callback(...argumentsNextCopied)).then(resolve);
             } else {
               void Promise.resolve(callback(...args)).then(resolve);
             }
@@ -99,9 +97,7 @@ export async function waitUntil(
 // This function lets you control how many promises can be worked on concurrently.
 // As soon as one promise ends, another one can be processed.
 // If the concurrency number is zero then they will be processed immediately.
-export function promiseLimit(
-  concurrency: number,
-): <T>(fn: () => T) => OptionalPromise<T> {
+export function promiseLimit(concurrency: number): <T>(fn: () => T) => OptionalPromise<T> {
   // If concurrency is zero, all promises are executed immediately.
   if (concurrency === 0) {
     return <T>(fn: () => T): T => fn();

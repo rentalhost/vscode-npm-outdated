@@ -72,10 +72,7 @@ export const l10n = {
     let messageModified = message;
 
     for (const [argumentIndex, argument] of args.entries()) {
-      messageModified = messageModified.replaceAll(
-        `{${argumentIndex}}`,
-        String(argument),
-      );
+      messageModified = messageModified.replaceAll(`{${argumentIndex}}`, String(argument));
     }
 
     return messageModified;

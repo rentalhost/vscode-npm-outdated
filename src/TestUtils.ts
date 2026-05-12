@@ -110,9 +110,7 @@ const UtilsMock = Utils as {
   cacheEnabled(): boolean;
 };
 
-function dependenciesAsChildren(
-  dependencies: Record<string, string>,
-): vscode.DocumentSymbol[] {
+function dependenciesAsChildren(dependencies: Record<string, string>): vscode.DocumentSymbol[] {
   return Object.entries(dependencies).map(
     ([name, version], entryIndex) =>
       ({
@@ -142,8 +140,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     fileName: `${sep}tests${sep}package.json`,
     lineAt: (line: number) => ({
       text: {
-        slice: (): string =>
-          (options.packageJson as PackageJson).dependencies?.[line] ?? "",
+        slice: (): string => (options.packageJson as PackageJson).dependencies?.[line] ?? "",
       },
     }),
     uri: { fsPath: `${sep}tests` },
@@ -154,8 +151,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     setDecorations: (): void => {
       decorations = [];
 
-      const documentLayers =
-        DocumentDecorationManager.fromDocument(document).layers.values();
+      const documentLayers = DocumentDecorationManager.fromDocument(document).layers.values();
 
       for (const layer of documentLayers) {
         for (const line of layer.lines.values()) {
@@ -163,9 +159,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
           const lineIndex = line.range.start.line;
 
           decorations[lineIndex] ??= [];
-          decorations[lineIndex].push(
-            String(line.renderOptions?.after?.contentText),
-          );
+          decorations[lineIndex].push(String(line.renderOptions?.after?.contentText));
         }
       }
     },
@@ -195,10 +189,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
         ) {
           return Promise.resolve({
             versions: Object.fromEntries(
-              options.packagesRepository[name]?.map((version) => [
-                version,
-                { version },
-              ]) as [],
+              options.packagesRepository[name]?.map((version) => [version, { version }]) as [],
             ),
           });
         }
@@ -226,9 +217,10 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
           ? options.packagesInstalled
           : JSON.stringify({
               dependencies: Object.fromEntries(
-                Object.entries(options.packagesInstalled).map(
-                  ([name, version]) => [name, { version }],
-                ),
+                Object.entries(options.packagesInstalled).map(([name, version]) => [
+                  name,
+                  { version },
+                ]),
               ),
             }),
       );
@@ -248,9 +240,10 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
           : JSON.stringify([
               {
                 dependencies: Object.fromEntries(
-                  Object.entries(options.packagesInstalled).map(
-                    ([name, version]) => [name, { version }],
-                  ),
+                  Object.entries(options.packagesInstalled).map(([name, version]) => [
+                    name,
+                    { version },
+                  ]),
                 ),
               },
             ]),
@@ -265,10 +258,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
       return;
     }
 
-    if (
-      command === "pnpm --version" &&
-      packageManager === PackageManager.PNPM
-    ) {
+    if (command === "pnpm --version" && packageManager === PackageManager.PNPM) {
       callbackReal(null, "1.0.0\n");
 
       return;
@@ -276,10 +266,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
     if (typeof callbackReal === "function") {
       if (command === "npm view --json @private/npm-outdated versions") {
-        callbackReal(
-          null,
-          JSON.stringify(options.packagesRepository!["@private/npm-outdated"]),
-        );
+        callbackReal(null, JSON.stringify(options.packagesRepository!["@private/npm-outdated"]));
 
         return;
       }
@@ -332,18 +319,14 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
       if (options.packageJson.peerDependencies) {
         symbols.push({
-          children: dependenciesAsChildren(
-            options.packageJson.peerDependencies,
-          ),
+          children: dependenciesAsChildren(options.packageJson.peerDependencies),
           name: "peerDependencies",
         });
       }
 
       if (options.packageJson.optionalDependencies) {
         symbols.push({
-          children: dependenciesAsChildren(
-            options.packageJson.optionalDependencies,
-          ),
+          children: dependenciesAsChildren(options.packageJson.optionalDependencies),
           name: "optionalDependencies",
         });
       }
@@ -366,9 +349,8 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
   vscodeMock.window.activeTextEditor = editor;
   vscodeMock.window.visibleTextEditors = [editor];
 
-  vscodeMock.window.onDidChangeActiveTextEditor = (
-    handle: () => void,
-  ): number => subscriptions.push(["onDidChangeActiveTextEditor", handle]);
+  vscodeMock.window.onDidChangeActiveTextEditor = (handle: () => void): number =>
+    subscriptions.push(["onDidChangeActiveTextEditor", handle]);
 
   vscodeMock.window.showErrorMessage = (
     message: string,
@@ -395,23 +377,19 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     subscriptions.push(["onDidCloseTextDocument", handle]);
 
   vscodeMock.workspace.createFileSystemWatcher = (): unknown => ({
-    onDidChange: (handle: () => void): number =>
-      subscriptions.push(["onDidChange", handle]),
+    onDidChange: (handle: () => void): number => subscriptions.push(["onDidChange", handle]),
     onDidCreate: () => null,
     onDidDelete: () => null,
   });
 
   vscodeMock.workspace.getConfiguration = (): unknown => ({
-    get: jest.fn(
-      <T extends keyof PluginConfigurations>(name: `${string}.${T}`) => {
-        const nameWithoutPrefix = name.slice(packageName.length + 1) as T;
+    get: jest.fn(<T extends keyof PluginConfigurations>(name: `${string}.${T}`) => {
+      const nameWithoutPrefix = name.slice(packageName.length + 1) as T;
 
-        return options.configurations &&
-          nameWithoutPrefix in options.configurations
-          ? options.configurations[nameWithoutPrefix]
-          : DefaultPluginConfigurations[nameWithoutPrefix];
-      },
-    ),
+      return options.configurations && nameWithoutPrefix in options.configurations
+        ? options.configurations[nameWithoutPrefix]
+        : DefaultPluginConfigurations[nameWithoutPrefix];
+    }),
   });
 
   vscodeMock.languages.createDiagnosticCollection = jest.fn(() => ({
@@ -425,8 +403,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
   vscodeMock.Range = class extends vscode.Range {
     public intersection(): Range | undefined {
-      return options.selectFirsts !== undefined &&
-        this.end.line + 1 <= options.selectFirsts
+      return options.selectFirsts !== undefined && this.end.line + 1 <= options.selectFirsts
         ? this
         : undefined;
     }
@@ -437,9 +414,9 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
   activate(context as unknown as vscode.ExtensionContext);
 
   if (options.triggerChangeAfter === true) {
-    subscriptions.find(
-      (subscription) => subscription[0] === "onDidChangeTextDocument",
-    )?.[1]({ document });
+    subscriptions.find((subscription) => subscription[0] === "onDidChangeTextDocument")?.[1]({
+      document,
+    });
   }
 
   if (options.selectFirsts !== undefined) {
@@ -451,9 +428,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     );
 
     if (options.runAction !== undefined) {
-      const command = commands.find(
-        (commandInner) => commandInner[0] === options.runAction?.name,
-      );
+      const command = commands.find((commandInner) => commandInner[0] === options.runAction?.name);
 
       command?.[1].apply(undefined, options.runAction.args!);
     }

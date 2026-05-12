@@ -1,10 +1,4 @@
-import {
-  CodeAction,
-  CodeActionKind,
-  l10n,
-  languages,
-  WorkspaceEdit,
-} from "vscode";
+import { CodeAction, CodeActionKind, l10n, languages, WorkspaceEdit } from "vscode";
 
 import { COMMAND_INSTALL_REQUEST } from "./Command";
 import { DiagnosticType, PackageRelatedDiagnostic } from "./Diagnostic";
@@ -30,8 +24,7 @@ async function createAction(
 
   await Promise.any(
     diagnostics.map(async (diagnostic) => {
-      const isLatest =
-        await diagnostic.packageRelated.isVersionLatestAlreadyInstalled();
+      const isLatest = await diagnostic.packageRelated.isVersionLatestAlreadyInstalled();
 
       if (!isLatest) {
         throw new Error();
@@ -61,9 +54,7 @@ async function createUpdateManyAction(
   const action = await createAction(document, message, diagnostics);
 
   await Promise.all(
-    diagnostics.map(async (diagnostic) =>
-      updatePackageVersion(action, document, diagnostic),
-    ),
+    diagnostics.map(async (diagnostic) => updatePackageVersion(action, document, diagnostic)),
   );
 
   return action;
@@ -75,8 +66,7 @@ async function createUpdateSingleAction(
 ): Promise<CodeAction> {
   const versionLatest = await diagnostic.packageRelated.getVersionLatest();
   const updateWarning =
-    hasMajorUpdateProtection() &&
-    (await diagnostic.packageRelated.requiresVersionMajorUpdate())
+    hasMajorUpdateProtection() && (await diagnostic.packageRelated.requiresVersionMajorUpdate())
       ? ` (${l10n.t("major")})`
       : "";
 
@@ -98,10 +88,7 @@ async function createUpdateSingleAction(
 
 const SINGLE_PACKAGE_TO_INSTALL = 1;
 
-function createInstallAction(
-  document: TextDocument,
-  requiresInstallCount: number,
-): CodeAction {
+function createInstallAction(document: TextDocument, requiresInstallCount: number): CodeAction {
   const action = new CodeAction(
     requiresInstallCount === SINGLE_PACKAGE_TO_INSTALL
       ? l10n.t("Install package")
@@ -124,26 +111,16 @@ async function updatePackageVersion(
   diagnostic: PackageRelatedDiagnostic,
 ): Promise<void> {
   const line = document.lineAt(diagnostic.range.start.line);
-  const version = line.text.slice(
-    diagnostic.range.start.character,
-    diagnostic.range.end.character,
-  );
+  const version = line.text.slice(diagnostic.range.start.character, diagnostic.range.end.character);
   const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.groups?.op ?? "";
   const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
 
-  action.edit?.replace(
-    document.uri,
-    diagnostic.range,
-    versionPrefix + versionUpdated,
-  );
+  action.edit?.replace(document.uri, diagnostic.range, versionPrefix + versionUpdated);
 }
 
 export class PackageJsonCodeActionProvider implements CodeActionProvider {
   // eslint-disable-next-line @typescript-eslint/class-methods-use-this
-  public async provideCodeActions(
-    document: TextDocument,
-    range: Range,
-  ): Promise<CodeAction[]> {
+  public async provideCodeActions(document: TextDocument, range: Range): Promise<CodeAction[]> {
     const diagnosticsAll = languages.getDiagnostics(document.uri);
 
     // Get all diagnostics from this extension.
@@ -152,8 +129,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
       (diagnostic) =>
         typeof diagnostic.code === "object" &&
         diagnostic.code.value === packageName &&
-        (!PackageRelatedDiagnostic.is(diagnostic) ||
-          diagnostic.type === DiagnosticType.GENERAL),
+        (!PackageRelatedDiagnostic.is(diagnostic) || diagnostic.type === DiagnosticType.GENERAL),
     ) as PackageRelatedDiagnostic[];
 
     // Checks if an CodeAction comes through a diagnostic.
@@ -180,9 +156,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
 
     if (diagnosticsSelected.length === 0) {
       if (requiresInstallCount) {
-        return Promise.all([
-          createInstallAction(document, requiresInstallCount),
-        ]);
+        return Promise.all([createInstallAction(document, requiresInstallCount)]);
       }
 
       return [];
@@ -195,9 +169,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
     // If only a single-line is selected or range accepts only one diagnostic then create a direct action for a specific package.
     // Else, it will be suggested to update all <number of> packages within range.
     if (diagnosticsSelected.length === 1) {
-      diagnosticsPromises.push(
-        createUpdateSingleAction(document, diagnosticsSelected[0]!),
-      );
+      diagnosticsPromises.push(createUpdateSingleAction(document, diagnosticsSelected[0]!));
     } else {
       let updateWarning = "";
 
@@ -250,10 +222,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
     }
 
     // If the total number of diagnostics is greater than the number of selected ones, then it is suggested to update all.
-    if (
-      diagnostics.length > 1 &&
-      diagnostics.length > diagnosticsSelectedFiltered.length
-    ) {
+    if (diagnostics.length > 1 && diagnostics.length > diagnosticsSelectedFiltered.length) {
       let updateWarning = "";
       let diagnosticsFiltered = diagnostics;
 
@@ -292,19 +261,14 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
           createUpdateManyAction(
             document,
             diagnosticsFiltered,
-            `${l10n.t(
-              "Update all {0} packages",
-              diagnosticsFiltered.length,
-            )}${updateWarning}`,
+            `${l10n.t("Update all {0} packages", diagnosticsFiltered.length)}${updateWarning}`,
           ),
         );
       }
     }
 
     if (requiresInstallCount) {
-      diagnosticsPromises.push(
-        createInstallAction(document, requiresInstallCount),
-      );
+      diagnosticsPromises.push(createInstallAction(document, requiresInstallCount));
     }
 
     return Promise.all(diagnosticsPromises);

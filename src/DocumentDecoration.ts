@@ -21,9 +21,7 @@ export class DocumentDecoration {
 
   public constructor(private readonly document: TextDocument) {
     this.render = lazyCallback(() => {
-      const documentLayers = DocumentDecorationManager.fromDocument(
-        this.document,
-      ).layers.values();
+      const documentLayers = DocumentDecorationManager.fromDocument(this.document).layers.values();
 
       for (const layer of documentLayers) {
         for (const editor of this.editors) {
@@ -32,15 +30,11 @@ export class DocumentDecoration {
       }
     }, 100);
 
-    this.editors = window.visibleTextEditors.filter(
-      (editor) => editor.document === document,
-    );
+    this.editors = window.visibleTextEditors.filter((editor) => editor.document === document);
   }
 
   public clearLine(line: number): void {
-    const documentLayers = DocumentDecorationManager.fromDocument(
-      this.document,
-    ).layers.values();
+    const documentLayers = DocumentDecorationManager.fromDocument(this.document).layers.values();
 
     for (const decoration of documentLayers) {
       decoration.lines.delete(line);
@@ -50,9 +44,7 @@ export class DocumentDecoration {
   }
 
   public setCheckedMessage(line: number): void {
-    this.setLine(line, [
-      new Message(icons.checked, themeLight.iconChecked, themeDark.iconChecked),
-    ]);
+    this.setLine(line, [new Message(icons.checked, themeLight.iconChecked, themeDark.iconChecked)]);
   }
 
   public setCheckingMessage(line: number): void {
@@ -63,19 +55,13 @@ export class DocumentDecoration {
     line: number,
     packageInfo: PackageRelatedDiagnostic,
   ): Promise<void> {
-    const versionLatest =
-      (await packageInfo.packageRelated.getVersionLatest())!;
+    const versionLatest = (await packageInfo.packageRelated.getVersionLatest())!;
 
-    const packageVersionInstalled =
-      await packageInfo.packageRelated.getVersionInstalled();
+    const packageVersionInstalled = await packageInfo.packageRelated.getVersionInstalled();
 
     if (await packageInfo.packageRelated.requiresInstallCommand()) {
       this.setLine(line, [
-        new Message(
-          icons.pending,
-          themeLight.iconAvailable,
-          themeDark.iconAvailable,
-        ),
+        new Message(icons.pending, themeLight.iconAvailable, themeDark.iconAvailable),
         new Message(l10n.t("Now run your package manager install command.")),
       ]);
 
@@ -83,11 +69,7 @@ export class DocumentDecoration {
     }
 
     const updateDetails = [
-      new Message(
-        icons.updatable,
-        themeLight.iconUpdatable,
-        themeDark.iconUpdatable,
-      ),
+      new Message(icons.updatable, themeLight.iconUpdatable, themeDark.iconUpdatable),
       new Message(
         packageVersionInstalled === undefined
           ? l10n.t("Latest version:")
@@ -95,11 +77,7 @@ export class DocumentDecoration {
         themeLight.labelUpdatable,
         themeDark.labelUpdatable,
       ),
-      new Message(
-        versionLatest,
-        themeLight.labelVersion,
-        themeDark.labelVersion,
-      ),
+      new Message(versionLatest, themeLight.labelVersion, themeDark.labelVersion),
     ];
 
     if (packageVersionInstalled === undefined) {
@@ -111,9 +89,7 @@ export class DocumentDecoration {
           themeDark.labelPending,
         ),
       );
-    } else if (
-      await packageInfo.packageRelated.isVersionLatestAlreadyInstalled()
-    ) {
+    } else if (await packageInfo.packageRelated.isVersionLatestAlreadyInstalled()) {
       // If the latest version is already installed, it informs that only a user-defined version will be bumped.
       updateDetails.push(
         new Message(
@@ -150,16 +126,9 @@ export class DocumentDecoration {
     this.setLine(line, updateDetails);
   }
 
-  public setAdvisoryMessage(
-    packageInfo: PackageInfo,
-    packageAdvisory: PackageAdvisory,
-  ): void {
+  public setAdvisoryMessage(packageInfo: PackageInfo, packageAdvisory: PackageAdvisory): void {
     this.setLine(packageInfo.getLine(), [
-      new Message(
-        icons.advisory,
-        themeLight.iconAdvisory,
-        themeDark.iconAdvisory,
-      ),
+      new Message(icons.advisory, themeLight.iconAdvisory, themeDark.iconAdvisory),
       new Message(
         `${l10n.t("Security advisory")} (${l10n.t(
           packageAdvisory.severity.toUpperCase(),
@@ -176,9 +145,7 @@ export class DocumentDecoration {
   }
 
   private setLine(line: number, messages: Message[]): void {
-    const decorationManager = DocumentDecorationManager.fromDocument(
-      this.document,
-    );
+    const decorationManager = DocumentDecorationManager.fromDocument(this.document);
 
     if (this.flushed) {
       decorationManager.flushLine(line);
@@ -213,9 +180,7 @@ export class DocumentDecoration {
             after: {
               contentText: message.message,
               ...themeLight.default,
-              ...(messageIndex === 0
-                ? margins.marginInitial
-                : margins.marginThen),
+              ...(messageIndex === 0 ? margins.marginInitial : margins.marginThen),
               ...message.styleDefault,
             },
             dark: {

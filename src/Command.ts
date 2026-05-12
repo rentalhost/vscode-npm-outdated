@@ -11,14 +11,9 @@ import type { OutputChannel, TextDocument } from "vscode";
 export const COMMAND_INSTALL = `${packageName}.install`;
 export const COMMAND_INSTALL_REQUEST = `${packageName}.installRequest`;
 
-export async function packageInstallRequest(
-  document: TextDocument,
-): Promise<void> {
+export async function packageInstallRequest(document: TextDocument): Promise<void> {
   // @see https://github.com/microsoft/vscode/blob/main/extensions/npm/package.json
-  const packageManager: string = await commands.executeCommand(
-    "npm.packageManager",
-    document.uri,
-  );
+  const packageManager: string = await commands.executeCommand("npm.packageManager", document.uri);
 
   const action = l10n.t("Do it for me!");
   const actionCommand = getDoItForMeAction();
@@ -43,17 +38,11 @@ export async function packageInstallRequest(
   }
 }
 
-export function packageInstall(
-  outputChannel: OutputChannel,
-  command: string,
-  cwd: string,
-): void {
+export function packageInstall(outputChannel: OutputChannel, command: string, cwd: string): void {
   outputChannel.clear();
   outputChannel.show();
   outputChannel.append(
-    `${l10n.t(
-      "Installing selected packages...",
-    )}\n\n---\n\n${command}\n\n---\n`,
+    `${l10n.t("Installing selected packages...")}\n\n---\n\n${command}\n\n---\n`,
   );
 
   const process = exec(command, { cwd });
@@ -75,13 +64,9 @@ export function packageInstall(
     outputChannel.append(`\n---\n\n${l10n.t("Done.")}\n\n`);
 
     if (hasError) {
-      void window.showErrorMessage(
-        l10n.t("Failed to install packages. Check the output console."),
-      );
+      void window.showErrorMessage(l10n.t("Failed to install packages. Check the output console."));
     } else {
-      void window.showInformationMessage(
-        l10n.t("Packages installed successfully!"),
-      );
+      void window.showInformationMessage(l10n.t("Packages installed successfully!"));
     }
   });
 }

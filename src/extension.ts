@@ -31,10 +31,7 @@ export function activate(context: ExtensionContext) {
     outputChannel,
 
     commands.registerCommand(COMMAND_INSTALL_REQUEST, packageInstallRequest),
-    commands.registerCommand(
-      COMMAND_INSTALL,
-      packageInstall.bind(null, outputChannel),
-    ),
+    commands.registerCommand(COMMAND_INSTALL, packageInstall.bind(null, outputChannel)),
 
     languages.registerCodeActionsProvider(
       { language: "json", pattern: "**/package.json", scheme: "file" },

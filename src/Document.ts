@@ -40,11 +40,10 @@ export async function getDocumentPackages(
 ): Promise<DocumentsPackagesInterface> {
   return new Promise((resolve) => {
     void waitUntil(async () => {
-      const symbols: DocumentSymbol[] | undefined =
-        await commands.executeCommand(
-          "vscode.executeDocumentSymbolProvider",
-          document.uri,
-        );
+      const symbols: DocumentSymbol[] | undefined = await commands.executeCommand(
+        "vscode.executeDocumentSymbolProvider",
+        document.uri,
+      );
 
       if (symbols !== undefined) {
         resolve(
@@ -64,9 +63,7 @@ export async function getDocumentPackages(
               ),
               ...mapDependencyRange(
                 document,
-                symbols.find(
-                  (symbol) => symbol.name === "optionalDependencies",
-                ),
+                symbols.find((symbol) => symbol.name === "optionalDependencies"),
               ),
             ].map((documentPackage) => [documentPackage.name, documentPackage]),
           ),

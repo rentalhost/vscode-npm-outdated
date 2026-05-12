@@ -13,25 +13,19 @@ export function getLevel(): ReleaseType {
 // Retrieves the action for the "Do it for me!" feature based on the current configuration.
 // Default: "install".
 export function getDoItForMeAction() {
-  return workspace
-    .getConfiguration()
-    .get<"install" | "update">(`${packageName}.doItForMeAction`)!;
+  return workspace.getConfiguration().get<"install" | "update">(`${packageName}.doItForMeAction`)!;
 }
 
 // Avoid suggesting that a package be upgraded to a `major` version directly.
 // Default: true.
 export function hasMajorUpdateProtection(): boolean {
-  return workspace
-    .getConfiguration()
-    .get<boolean>(`${packageName}.majorUpdateProtection`)!;
+  return workspace.getConfiguration().get<boolean>(`${packageName}.majorUpdateProtection`)!;
 }
 
 // Identifies packages used with known security advisories.
 // Default: true.
 export function identifySecurityAdvisories(): boolean {
-  return workspace
-    .getConfiguration()
-    .get<boolean>(`${packageName}.identifySecurityAdvisories`)!;
+  return workspace.getConfiguration().get<boolean>(`${packageName}.identifySecurityAdvisories`)!;
 }
 
 // Displays decorations on the right side of packages.
@@ -46,17 +40,12 @@ export function getCacheLifetime(): number {
   const MINUTES_IN_MS = 60000;
 
   return (
-    MINUTES_IN_MS *
-    Number(
-      workspace.getConfiguration().get<number>(`${packageName}.cacheLifetime`),
-    )
+    MINUTES_IN_MS * Number(workspace.getConfiguration().get<number>(`${packageName}.cacheLifetime`))
   );
 }
 
 // Defines how much packages can be analyzed together.
 // Default: 20 packages.
 export function getParallelProcessesLimit(): number {
-  return workspace
-    .getConfiguration()
-    .get<number>(`${packageName}.parallelProcessesLimit`)!;
+  return workspace.getConfiguration().get<number>(`${packageName}.parallelProcessesLimit`)!;
 }

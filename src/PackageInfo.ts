@@ -1,13 +1,4 @@
-import {
-  coerce,
-  diff,
-  gt,
-  gte,
-  maxSatisfying,
-  prerelease,
-  valid,
-  validRange,
-} from "semver";
+import { coerce, diff, gt, gte, maxSatisfying, prerelease, valid, validRange } from "semver";
 
 import { getPackagesInstalled, getPackageVersions } from "./PackageManager";
 import { getLevel, hasMajorUpdateProtection } from "./Settings";
@@ -15,8 +6,7 @@ import { getLevel, hasMajorUpdateProtection } from "./Settings";
 import type { ReleaseType } from "semver";
 import type { Range, TextDocument } from "vscode";
 
-const PACKAGE_NAME_REGEXP =
-  /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/;
+const PACKAGE_NAME_REGEXP = /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/;
 
 const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/;
 
@@ -85,9 +75,7 @@ export class PackageInfo {
   public isVersionPrerelease(): boolean {
     const versionNormalized = this.getVersionNormalized();
 
-    return (
-      versionNormalized !== undefined && prerelease(versionNormalized) !== null
-    );
+    return versionNormalized !== undefined && prerelease(versionNormalized) !== null;
   }
 
   // If the version is the latest version available for this package.
@@ -102,9 +90,9 @@ export class PackageInfo {
 
     return Boolean(
       versionLatest !== null &&
-        versionInstalled !== undefined &&
-        diff(versionLatest, versionInstalled) === "major" &&
-        gte(versionLatest, versionInstalled),
+      versionInstalled !== undefined &&
+      diff(versionLatest, versionInstalled) === "major" &&
+      gte(versionLatest, versionInstalled),
     );
   }
 
@@ -146,8 +134,7 @@ export class PackageInfo {
     const packageDiff = diff(versionLatest, versionNormalized);
 
     return Boolean(
-      packageDiff &&
-        PACKAGE_DIFF_LEVELS[packageDiff] >= PACKAGE_DIFF_LEVELS[getLevel()],
+      packageDiff && PACKAGE_DIFF_LEVELS[packageDiff] >= PACKAGE_DIFF_LEVELS[getLevel()],
     );
   }
 
@@ -205,26 +192,16 @@ export class PackageInfo {
     // If we are dealing with a user-defined pre-release, we should check the latest compatible non-pre-release version available.
     // If this version is superior to the current pre-release version, we will suggest it first.
     if (isPrerelease) {
-      const versionNonPrerelease = maxSatisfying(
-        packageVersions,
-        `^${coerce(versionClean)!.raw}`,
-      );
+      const versionNonPrerelease = maxSatisfying(packageVersions, `^${coerce(versionClean)!.raw}`);
 
-      if (
-        versionNonPrerelease !== null &&
-        gt(versionNonPrerelease, versionClean)
-      ) {
+      if (versionNonPrerelease !== null && gt(versionNonPrerelease, versionClean)) {
         return versionNonPrerelease;
       }
     }
 
-    const versionSatisfying = maxSatisfying(
-      packageVersions,
-      `^${versionClean}`,
-      {
-        includePrerelease: isPrerelease,
-      },
-    );
+    const versionSatisfying = maxSatisfying(packageVersions, `^${versionClean}`, {
+      includePrerelease: isPrerelease,
+    });
 
     // If the user-defined version is exactly the same version available within the range given by the user,
     // we may suggest the latest version, which may include a major bump.
@@ -239,9 +216,7 @@ export class PackageInfo {
 
   // If the latest version is already installed.
   public async isVersionLatestAlreadyInstalled(): Promise<boolean> {
-    return (
-      (await this.getVersionLatest()) === (await this.getVersionInstalled())
-    );
+    return (await this.getVersionLatest()) === (await this.getVersionInstalled());
   }
 
   // Get all versions released of this package.
