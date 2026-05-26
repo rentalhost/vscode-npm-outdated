@@ -42,7 +42,7 @@ const packageManagerExecCache = new Cache<Record<string, boolean>>({});
 // Return if asked Package Manager is installed.
 async function supportsPackageManager(
   document: TextDocument,
-  cmd: "npm" | "pnpm",
+  cmd: "bun" | "npm" | "pnpm",
 ): Promise<boolean> {
   return new Promise((resolve) => {
     if (
@@ -179,6 +179,14 @@ export async function getPackageManager(document: TextDocument): Promise<Package
     return setPackageManager(PackageManager.PNPM);
   }
 
+  // Bun text-format lockfile (Bun 1.2+) or legacy binary lockfile.
+  else if (
+    (existsSync(`${cwd}/bun.lock`) || existsSync(`${cwd}/bun.lockb`)) &&
+    (await supportsPackageManager(document, "bun"))
+  ) {
+    return setPackageManager(PackageManager.BUN);
+  }
+
   // In last case, check for NPM.
   else if (await supportsPackageManager(document, "npm")) {
     return setPackageManager(PackageManager.NPM);
@@ -192,6 +200,24 @@ export const packagesInstalledCaches = new Map<
   string,
   Cache<Promise<PackagesInstalled | undefined>>
 >();
+
+// Parse the `bun list` output, which uses a tree-like text format
+// (no JSON mode is available). Matches lines like `├── name@version`
+// or `└── @scope/name@version` and ignores headers/log noise.
+export function parseBunList(data: string): PackagesInstalled | null {
+  const lineRegex = /^[└├]── (?<name>(?:@[^/]+\/)?[^\s@]+)@(?<version>\S+)/;
+  const dependencies: PackagesInstalled = {};
+
+  for (const line of data.split("\n")) {
+    const match = lineRegex.exec(line);
+
+    if (match?.groups) {
+      dependencies[match.groups["name"]!] = match.groups["version"]!;
+    }
+  }
+
+  return Object.keys(dependencies).length > 0 ? dependencies : null;
+}
 
 // Parse a JSON string and return an object of type T.
 // It tries to parse the string starting from the beginning and,
@@ -247,6 +273,24 @@ export async function getPackagesInstalled(
             }
           } catch {
             /* empty */
+          }
+        }
+
+        resolve(undefined);
+      });
+
+      return;
+    }
+
+    if (packageManager === PackageManager.BUN) {
+      exec("bun list", { cwd }, (_error, stdout) => {
+        if (stdout) {
+          const packagesInstalled = parseBunList(stdout);
+
+          if (packagesInstalled !== null) {
+            resolve(packagesInstalled);
+
+            return;
           }
         }
 
@@ -358,5 +402,6 @@ export async function getPackagesAdvisories(
 export const enum PackageManager {
   NPM,
   PNPM,
+  BUN,
   NONE,
 }

@@ -2,12 +2,13 @@
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated-plus",
   "version": "4.0.0",
-  "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm and pnpm.",
+  "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm, pnpm and bun.",
   "categories": [
     "Linters",
     "Other"
   ],
   "keywords": [
+    "bun",
     "dependencies",
     "npm",
     "outdated",

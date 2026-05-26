@@ -21,9 +21,9 @@ vi.mock("@/Utils", () => ({
 
   lazyCallback: <T extends () => void>(callback: T): T => callback,
 
-  // eslint-disable-next-line unicorn/consistent-function-scoping
   promiseLimit:
     () =>
+    // eslint-disable-next-line unicorn/consistent-function-scoping
     (callback: () => unknown): unknown =>
       callback(),
 
@@ -1037,6 +1037,34 @@ describe("security advisories", () => {
 
     expect(diagnostics).toHaveLength(0);
     expect(decorations[0]).toContain(icons.checked);
+  });
+
+  it("detect installed modules: bun", async () => {
+    expect.assertions(2);
+
+    const { decorations, diagnostics } = await vscodeSimulator({
+      packageJson: { dependencies: { jest: "^1.0.1" } },
+      packageManager: PackageManager.BUN,
+      packagesInstalled: { jest: "1.0.1" },
+      packagesRepository: { jest: ["1.0.0", "1.0.1"] },
+    });
+
+    expect(diagnostics).toHaveLength(0);
+    expect(decorations[0]).toContain(icons.checked);
+  });
+
+  it("detect installed modules: bun (scoped package)", async () => {
+    expect.assertions(2);
+
+    const { decorations, diagnostics } = await vscodeSimulator({
+      packageJson: { dependencies: { "@types/jest": "^1.0.0" } },
+      packageManager: PackageManager.BUN,
+      packagesInstalled: { "@types/jest": "1.0.1" },
+      packagesRepository: { "@types/jest": ["1.0.0", "1.0.1"] },
+    });
+
+    expect(diagnostics[0]?.message).toContain("Newer version");
+    expect(decorations[0]).toContain("(already installed, just formalization)");
   });
 
   it("valid dependency, newer version available (pnpm issue #7514)", async () => {

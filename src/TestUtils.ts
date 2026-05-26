@@ -155,6 +155,10 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
       return true;
     }
 
+    if (file.endsWith("/bun.lock") && packageManager === PackageManager.BUN) {
+      return true;
+    }
+
     return false;
   };
 
@@ -237,6 +241,26 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
       return;
     }
 
+    if (
+      command === "bun list" &&
+      options.packagesInstalled !== undefined &&
+      packageManager === PackageManager.BUN
+    ) {
+      callbackReal(
+        null,
+        typeof options.packagesInstalled === "string"
+          ? options.packagesInstalled
+          : [
+              `${sep}tests node_modules`,
+              ...Object.entries(options.packagesInstalled).map(
+                ([name, version]) => `├── ${name}@${version}`,
+              ),
+            ].join("\n"),
+      );
+
+      return;
+    }
+
     if (command === "npm --version" && packageManager === PackageManager.NPM) {
       callbackReal(null, "1.0.0\n");
 
@@ -244,6 +268,12 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     }
 
     if (command === "pnpm --version" && packageManager === PackageManager.PNPM) {
+      callbackReal(null, "1.0.0\n");
+
+      return;
+    }
+
+    if (command === "bun --version" && packageManager === PackageManager.BUN) {
       callbackReal(null, "1.0.0\n");
 
       return;

@@ -159,7 +159,7 @@ export function diagnosticSubscribe(
   }
 
   const lockerWatcher = workspace.createFileSystemWatcher(
-    "**/{package.json,package-lock.json,pnpm-lock.yaml}",
+    "**/{package.json,package-lock.json,pnpm-lock.yaml,bun.lock,bun.lockb}",
   );
 
   const nodeModulesWatcher = workspace.createFileSystemWatcher("**/node_modules/**/*");

@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.0.0 - 26/05/2026
+
+- Added support to `bun` package manager;
+
 ## 3.3.0 - 15/12/2024
 
 - Added support to `optionalDependencies`;

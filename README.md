@@ -2,7 +2,7 @@
 
 [![build](https://github.com/rentalhost/vscode-npm-outdated/actions/workflows/build.yml/badge.svg)](https://github.com/rentalhost/vscode-npm-outdated/actions/workflows/build.yml)
 
-Highlights outdated packages in `package.json` files and provides code actions to quickly update them. Fully compatible with **npm**, **pnpm** and **yarn**.
+Highlights outdated packages in `package.json` files and provides code actions to quickly update them. Fully compatible with **npm**, **pnpm** and **bun**.
 
 ![Screenshot](/images/screenshot.png)
 

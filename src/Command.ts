@@ -5,6 +5,7 @@ import { commands, l10n, window } from "vscode";
 
 import type { OutputChannel, TextDocument } from "vscode";
 
+import { getPackageManager, PackageManager } from "@/PackageManager";
 import { name as packageName } from "@/plugin.json";
 import { getDoItForMeAction } from "@/Settings";
 
@@ -13,8 +14,13 @@ export const COMMAND_INSTALL = `${packageName}.install`;
 export const COMMAND_INSTALL_REQUEST = `${packageName}.installRequest`;
 
 export async function packageInstallRequest(document: TextDocument): Promise<void> {
+  // Bun isn't supported by VSCode's built-in `npm.packageManager` command, so
+  // we override it when our own detection identified the workspace as Bun.
   // @see https://github.com/microsoft/vscode/blob/main/extensions/npm/package.json
-  const packageManager: string = await commands.executeCommand("npm.packageManager", document.uri);
+  const packageManager: string =
+    (await getPackageManager(document)) === PackageManager.BUN
+      ? "bun"
+      : await commands.executeCommand("npm.packageManager", document.uri);
 
   const action = l10n.t("Do it for me!");
   const actionCommand = getDoItForMeAction();
