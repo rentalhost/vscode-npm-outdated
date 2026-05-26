@@ -29,14 +29,13 @@
   },
   "publisher": "rentalhost",
   "type": "module",
-  "main": "./out/extension.js",
+  "main": "./out/extension.cjs",
   "scripts": {
+    "compile": "npm run build:esbuild",
     "vscode:prepublish": "npm run build:esbuild",
     "vscode:package": "npm run vscode:prepublish && vsce package --no-dependencies",
     "build:esbuild": "tsx esbuild.config.ts",
     "build:esbuild:watch": "tsx --watch esbuild.config.ts",
-    "build:base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "compile": "tsc",
     "watch": "tsc -watch",
     "typecheck": "tsc --noEmit",
     "oxfmt": "oxfmt --check ./src ./locales ./.vscode ./*.mjs ./*.ts ./*.json ./*.md",
@@ -154,6 +153,6 @@
   ],
   "icon": "assets/icon.png",
   "engines": {
-    "vscode": "^1.118.0"
+    "vscode": "^1.120.0"
   }
 }

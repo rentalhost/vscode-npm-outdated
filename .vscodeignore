@@ -12,10 +12,18 @@ locales/bundle.l10n.jsonc
 .gitignore
 .swcrc
 
+changelog.md
+
+esbuild.config.ts
+eslint.config.mjs
+vitest.config.ts
+
 bun.lock
+pnpm-lock.yaml
+pnpm-workspace.yaml
 eslint.config.ts
 jest.config.ts
 tsconfig.json
 
 out/**
-!out/extension.js
+!out/extension.cjs

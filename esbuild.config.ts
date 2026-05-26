@@ -9,12 +9,12 @@ import type { BuildOptions } from "esbuild";
 const isWatch = process.argv.includes("--watch");
 
 async function buildFile() {
-  stdout.write("Building extension.js...\n");
+  stdout.write("Building extension.cjs...\n");
 
   const buildOptions: BuildOptions = {
     bundle: true,
     entryPoints: ["./src/extension.ts"],
-    outfile: "./out/extension.js",
+    outfile: "./out/extension.cjs",
     platform: "node",
     format: "cjs",
     target: "esnext",
@@ -38,7 +38,7 @@ async function minifyFile() {
   stdout.write("Minifying with SWC... ");
 
   try {
-    const { code } = await transformFile("./out/extension.js", {
+    const { code } = await transformFile("./out/extension.cjs", {
       jsc: {
         target: "esnext",
         loose: true,
@@ -50,7 +50,7 @@ async function minifyFile() {
       minify: true,
     });
 
-    await writeFile("./out/extension.js", code);
+    await writeFile("./out/extension.cjs", code);
 
     stdout.write(`${(code.length / 1024).toFixed(1)} KB\n`);
   } catch (error: unknown) {
