@@ -1,6 +1,16 @@
 /* eslint-disable id-length */
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable max-classes-per-file */
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/class-methods-use-this */
+
+import { vi } from "vitest";
+
+let rangeSelectFirsts: number | undefined;
+
+export function __setRangeSelectFirsts(value: number | undefined): void {
+  rangeSelectFirsts = value;
+}
 
 export class Range {
   public start: { character: number; line: number };
@@ -16,11 +26,17 @@ export class Range {
     this.start = { character: startCharacter, line: startLine };
     this.end = { character: endCharacter, line: endLine };
   }
+
+  public intersection(): Range | undefined {
+    return rangeSelectFirsts !== undefined && this.end.line + 1 <= rangeSelectFirsts
+      ? this
+      : undefined;
+  }
 }
 
-export const ExtensionContext = jest.fn(() => ({
-  subscriptions: jest.fn(() => ({
-    push: jest.fn(),
+export const ExtensionContext: unknown = vi.fn(() => ({
+  subscriptions: vi.fn(() => ({
+    push: vi.fn(),
   })),
 }));
 
@@ -45,8 +61,8 @@ export const CodeActionKind = {
 
 export const commands = {};
 
-export const languages = {
-  registerCodeActionsProvider: jest.fn(),
+export const languages: { registerCodeActionsProvider: unknown } = {
+  registerCodeActionsProvider: vi.fn(),
 };
 
 export const window = {
@@ -57,11 +73,13 @@ export const Uri = {
   parse: (): undefined => undefined,
 };
 
-export const workspace = jest.fn();
+export const workspace: unknown = vi.fn();
 
-export const WorkspaceEdit = jest.fn(() => ({
-  replace: (): undefined => undefined,
-}));
+export class WorkspaceEdit {
+  public replace(): undefined {
+    return undefined;
+  }
+}
 
 export class CodeAction {
   public constructor(public title: string) {}

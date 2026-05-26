@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { vi } from "vitest";
 import { DiagnosticSeverity } from "vscode";
 
 import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "@/Command";
@@ -6,14 +6,32 @@ import { PackageManager } from "@/PackageManager";
 import { vscodeSimulator } from "@/TestUtils";
 import { icons } from "@/Theme";
 
-jest.mock("node:child_process", () => ({
+vi.mock("node:child_process", async () => ({
   __esModule: true,
-  ...jest.requireActual("node:child_process"),
+  ...(await vi.importActual("node:child_process")),
 }));
 
-jest.mock("node:fs", () => ({
+vi.mock("node:fs", async () => ({
   __esModule: true,
-  ...jest.requireActual("node:fs"),
+  ...(await vi.importActual("node:fs")),
+}));
+
+vi.mock("@/Utils", () => ({
+  __esModule: true,
+
+  lazyCallback: <T extends () => void>(callback: T): T => callback,
+
+  // eslint-disable-next-line unicorn/consistent-function-scoping
+  promiseLimit:
+    () =>
+    (callback: () => unknown): unknown =>
+      callback(),
+
+  waitUntil: (callback: () => void): true => {
+    callback();
+
+    return true;
+  },
 }));
 
 describe("package diagnostics", () => {
@@ -750,7 +768,7 @@ describe("commands", () => {
       packagesInstalled: { "npm-outdated": "1.0.0" },
       packagesRepository: { "npm-outdated": ["1.0.0", "2.0.0"] },
       runAction: {
-        args: [{ save: jest.fn(), uri: { fsPath: "./test" } }],
+        args: [{ save: vi.fn(), uri: { fsPath: "./test" } }],
         name: COMMAND_INSTALL_REQUEST,
       },
       selectFirsts: 1,

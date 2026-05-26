@@ -15,9 +15,9 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "types": ["node", "vscode", "jest"],
+    "types": ["node", "vscode", "vitest/globals"],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["jest.config.ts", "esbuild.config.ts", "src/**/*.ts"],
+  "include": ["vitest.config.ts", "esbuild.config.ts", "src/**/*.ts"],
   "exclude": ["node_modules"]
 }

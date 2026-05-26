@@ -3,40 +3,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-/* eslint-disable unicorn/consistent-function-scoping */
 import * as ChildProcess from "node:child_process";
 import * as FS from "node:fs";
 import { sep } from "node:path";
 
+import { vi } from "vitest";
 import * as vscode from "vscode";
 import { Range } from "vscode";
 
 import type { PackageAdvisory } from "@/PackageManager";
 import type { ReleaseType } from "semver";
 
+import { __setRangeSelectFirsts } from "@/__mocks__/vscode";
 import { PackageJsonCodeActionProvider } from "@/CodeAction";
 import { DocumentDecorationManager } from "@/DocumentDecorationManager";
 import { activate } from "@/extension";
 import { PackageManager } from "@/PackageManager";
 import { name as packageName } from "@/plugin.json";
 import * as Utils from "@/Utils";
-
-jest.mock("./Utils", () => ({
-  __esModule: true,
-
-  lazyCallback: <T extends () => void>(callback: T): T => callback,
-
-  promiseLimit:
-    () =>
-    (callback: () => unknown): unknown =>
-      callback(),
-
-  waitUntil: (callback: () => void): true => {
-    callback();
-
-    return true;
-  },
-}));
 
 interface PluginConfigurations {
   cacheLifetime?: number;
@@ -364,10 +348,10 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
 
   vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage;
 
-  vscodeMock.window.createOutputChannel = jest.fn(() => ({
-    append: jest.fn(),
-    clear: jest.fn(),
-    show: jest.fn(),
+  vscodeMock.window.createOutputChannel = vi.fn(() => ({
+    append: vi.fn(),
+    clear: vi.fn(),
+    show: vi.fn(),
   }));
 
   vscodeMock.workspace.onDidChangeTextDocument = (handle: () => void): number =>
@@ -383,7 +367,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
   });
 
   vscodeMock.workspace.getConfiguration = (): unknown => ({
-    get: jest.fn(<T extends keyof PluginConfigurations>(name: `${string}.${T}`) => {
+    get: vi.fn(<T extends keyof PluginConfigurations>(name: `${string}.${T}`) => {
       const nameWithoutPrefix = name.slice(packageName.length + 1) as T;
 
       return options.configurations && nameWithoutPrefix in options.configurations
@@ -392,24 +376,18 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     }),
   });
 
-  vscodeMock.languages.createDiagnosticCollection = jest.fn(() => ({
-    clear: jest.fn(),
-    delete: jest.fn(),
+  vscodeMock.languages.createDiagnosticCollection = vi.fn(() => ({
+    clear: vi.fn(),
+    delete: vi.fn(),
     set: (_uri: vscode.Uri, diags: vscode.Diagnostic[]): vscode.Diagnostic[] =>
       (diagnostics = diags),
   }));
 
   vscodeMock.languages.getDiagnostics = (): vscode.Diagnostic[] => diagnostics;
 
-  vscodeMock.Range = class extends vscode.Range {
-    public intersection(): Range | undefined {
-      return options.selectFirsts !== undefined && this.end.line + 1 <= options.selectFirsts
-        ? this
-        : undefined;
-    }
-  };
+  __setRangeSelectFirsts(options.selectFirsts);
 
-  const context = { subscriptions: { push: jest.fn() } };
+  const context = { subscriptions: { push: vi.fn() } };
 
   activate(context as unknown as vscode.ExtensionContext);
 

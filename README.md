@@ -17,15 +17,15 @@ Highlights outdated packages in `package.json` files and provides code actions t
 
 ## Configuration
 
-| Setting | Description |
-|---|---|
-| `npm-outdated-plus.level` | Minimum semver bump to show a package as outdated (major, minor, or patch). |
-| `npm-outdated-plus.decorations` | Display style: `fancy` (colorful), `simple` (minimal), or `disabled`. |
-| `npm-outdated-plus.identifySecurityAdvisories` | Enable security advisory detection. |
-| `npm-outdated-plus.majorUpdateProtection` | Avoid suggesting direct major version upgrades. |
-| `npm-outdated-plus.cacheLifetime` | Minutes to cache analyzed package versions. |
-| `npm-outdated-plus.parallelProcessesLimit` | Max packages analyzed simultaneously (0 = unlimited). |
-| `npm-outdated-plus.doItForMeAction` | Action to run after updating: `install` or `update`. |
+| Setting                                        | Description                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| `npm-outdated-plus.level`                      | Minimum semver bump to show a package as outdated (major, minor, or patch). |
+| `npm-outdated-plus.decorations`                | Display style: `fancy` (colorful), `simple` (minimal), or `disabled`.       |
+| `npm-outdated-plus.identifySecurityAdvisories` | Enable security advisory detection.                                         |
+| `npm-outdated-plus.majorUpdateProtection`      | Avoid suggesting direct major version upgrades.                             |
+| `npm-outdated-plus.cacheLifetime`              | Minutes to cache analyzed package versions.                                 |
+| `npm-outdated-plus.parallelProcessesLimit`     | Max packages analyzed simultaneously (0 = unlimited).                       |
+| `npm-outdated-plus.doItForMeAction`            | Action to run after updating: `install` or `update`.                        |
 
 ## Usage
 
