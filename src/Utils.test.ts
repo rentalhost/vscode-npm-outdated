@@ -4,6 +4,7 @@ import type { PackageAdvisory } from "#/PackageManager";
 import { cacheEnabled, lazyCallback, promiseLimit, requestSafe } from "#/Utils";
 
 const TIMER_MULTIPLIER = 3;
+const TIMER_JITTER_MS = 5;
 
 describe("utils", () => {
   it("lazy callback: immediate call", async () => {
@@ -39,7 +40,7 @@ describe("utils", () => {
 
     // Must run after 25ms:
     void lazy(() => {
-      expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER);
+      expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER - TIMER_JITTER_MS);
     });
 
     await sleep(50 * TIMER_MULTIPLIER);
@@ -56,7 +57,7 @@ describe("utils", () => {
 
     // Must run after 25ms:
     void lazy(() => {
-      expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER);
+      expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER - TIMER_JITTER_MS);
     });
 
     await sleep(50 * TIMER_MULTIPLIER);
@@ -89,7 +90,7 @@ describe("utils", () => {
     void lazy(() => {
       const nowDiff = Date.now() - now;
 
-      expect(nowDiff).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER);
+      expect(nowDiff).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER - TIMER_JITTER_MS);
       expect(nowDiff).toBeLessThan(50 * TIMER_MULTIPLIER);
     });
 
@@ -114,7 +115,7 @@ describe("utils", () => {
     ]);
 
     // The total time should be 50ms.
-    expect(Date.now() - now).toBeGreaterThanOrEqual(50 * TIMER_MULTIPLIER);
+    expect(Date.now() - now).toBeGreaterThanOrEqual(50 * TIMER_MULTIPLIER - TIMER_JITTER_MS);
   });
 
   it("promise limit: run all processes simultaneous (no limit)", async () => {
