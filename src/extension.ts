@@ -1,17 +1,16 @@
 import { CodeActionKind, commands, languages, window } from "vscode";
-
 import type { ExtensionContext, TextDocument } from "vscode";
 
-import { PackageJsonCodeActionProvider } from "@/CodeAction";
+import { PackageJsonCodeActionProvider } from "#/CodeAction";
 import {
   COMMAND_INSTALL,
   COMMAND_INSTALL_REQUEST,
   packageInstall,
   packageInstallRequest,
-} from "@/Command";
-import { diagnosticSubscribe, generatePackagesDiagnostics } from "@/Diagnostic";
-import { name as packageName } from "@/plugin.json";
-import { lazyCallback } from "@/Utils";
+} from "#/Command";
+import { diagnosticSubscribe, generatePackagesDiagnostics } from "#/Diagnostic";
+import { name as packageName } from "#/plugin.json";
+import { lazyCallback } from "#/Utils";
 
 export function activate(context: ExtensionContext) {
   const diagnostics = languages.createDiagnosticCollection();

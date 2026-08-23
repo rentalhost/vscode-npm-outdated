@@ -1,7 +1,7 @@
 {
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated-plus",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm, pnpm and bun.",
   "categories": [
     "Linters",
@@ -31,39 +31,39 @@
   "publisher": "rentalhost",
   "type": "module",
   "main": "./out/extension.cjs",
+  "imports": {
+    "#/*": "./src/*.js"
+  },
   "scripts": {
-    "compile": "npm run build:esbuild",
-    "vscode:prepublish": "npm run build:esbuild",
-    "vscode:package": "npm run vscode:prepublish && vsce package --no-dependencies",
-    "build:esbuild": "tsx esbuild.config.ts",
-    "build:esbuild:watch": "tsx --watch esbuild.config.ts",
-    "watch": "tsc -watch",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "compile": "bun run build",
+    "lint": "bun run typecheck && bun run oxlint && bun run oxfmt",
+    "lint:fix": "bun run typecheck && bun run oxlint:fix && bun run oxfmt:fix",
+    "oxfmt": "oxfmt --check ./src ./locales ./.vscode",
+    "oxfmt:fix": "oxfmt --write ./src ./locales ./.vscode",
+    "oxlint": "oxlint ./src",
+    "oxlint:fix": "oxlint --fix ./src",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "oxfmt": "oxfmt --check ./src ./locales ./.vscode ./*.mjs ./*.ts ./*.json ./*.md",
-    "oxfmt:fix": "oxfmt --write ./src ./locales ./.vscode ./*.mjs ./*.ts ./*.json ./*.md",
-    "eslint": "eslint ./src",
-    "eslint:fix": "eslint --fix ./src",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "vscode:package": "bun run vscode:prepublish && vsce package --no-dependencies",
+    "vscode:prepublish": "bun run build"
   },
   "dependencies": {
-    "semver": "^7.8.1",
-    "tsx": "^4.22.3"
+    "semver": "^7.8.5"
   },
   "devDependencies": {
-    "@rheactor/eslint-config-rheactor": "github:rheactor/eslint-config-rheactor#main",
-    "@swc/cli": "^0.8.1",
-    "@swc/core": "^1.15.40",
-    "@types/node": "^25.9.1",
-    "@types/semver": "^7.7.1",
-    "@types/vscode": "^1.120.0",
-    "esbuild": "^0.28.0",
-    "eslint": "^10.4.0",
-    "globals": "^17.6.0",
-    "oxfmt": "^0.52.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.0",
-    "vitest": "^4.1.7"
+    "@rheactor/rheactor-oxc-config": "github:rheactor/rheactor-oxc-config",
+    "@types/node": "^26.2.0",
+    "@types/semver": "^7.8.0",
+    "@types/vscode": "^1.134.0",
+    "globals": "^17.11.0",
+    "oxfmt": "^0.64.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "tsdown": "^0.22.14",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "l10n": "./locales",
   "contributes": {

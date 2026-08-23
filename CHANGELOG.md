@@ -8,11 +8,13 @@
 
 - Added support to `optionalDependencies`;
 - Fixes an issue where the package indicated an available version, but it was deprecated;
-- Fixes an issue where packages versions were no longer reprocessed when there were too many packages due to the way data from NPM was handled;
+- Fixes an issue where packages versions were no longer reprocessed when there were too many
+  packages due to the way data from NPM was handled;
 
 ## 3.2.0 - 03/02/2024
 
-- The "Do it for me" button now supports executing either the `install` command (set as default) or the `update` command;
+- The "Do it for me" button now supports executing either the `install` command (set as default) or
+  the `update` command;
 
 ## 3.1.1 - 10/01/2024
 

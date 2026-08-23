@@ -1,7 +1,6 @@
+import type { IncomingMessage } from "node:http";
 import { request } from "node:https";
 import { brotliDecompress, gzipSync } from "node:zlib";
-
-import type { IncomingMessage } from "node:http";
 
 interface FetchLite {
   body?: object;

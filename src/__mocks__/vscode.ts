@@ -1,9 +1,3 @@
-/* eslint-disable id-length */
-/* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable max-classes-per-file */
-/* eslint-disable no-underscore-dangle */
-/* eslint-disable @typescript-eslint/class-methods-use-this */
-
 import { vi } from "vitest";
 
 let rangeSelectFirsts: number | undefined;

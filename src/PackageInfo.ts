@@ -1,10 +1,9 @@
 import { coerce, diff, gt, gte, maxSatisfying, prerelease, valid, validRange } from "semver";
-
 import type { ReleaseType } from "semver";
 import type { Range, TextDocument } from "vscode";
 
-import { getPackagesInstalled, getPackageVersions } from "@/PackageManager";
-import { getLevel, hasMajorUpdateProtection } from "@/Settings";
+import { getPackagesInstalled, getPackageVersions } from "#/PackageManager";
+import { getLevel, hasMajorUpdateProtection } from "#/Settings";
 
 const PACKAGE_NAME_REGEXP = /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/;
 

@@ -1,10 +1,10 @@
 import { vi } from "vitest";
 import { DiagnosticSeverity } from "vscode";
 
-import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "@/Command";
-import { PackageManager } from "@/PackageManager";
-import { vscodeSimulator } from "@/TestUtils";
-import { icons } from "@/Theme";
+import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "#/Command";
+import { PackageManager } from "#/PackageManager";
+import { vscodeSimulator } from "#/TestUtils";
+import { icons } from "#/Theme";
 
 vi.mock("node:child_process", async () => ({
   __esModule: true,
@@ -16,14 +16,13 @@ vi.mock("node:fs", async () => ({
   ...(await vi.importActual("node:fs")),
 }));
 
-vi.mock("@/Utils", () => ({
+vi.mock("#/Utils", () => ({
   __esModule: true,
 
   lazyCallback: <T extends () => void>(callback: T): T => callback,
 
   promiseLimit:
     () =>
-    // eslint-disable-next-line unicorn/consistent-function-scoping
     (callback: () => unknown): unknown =>
       callback(),
 

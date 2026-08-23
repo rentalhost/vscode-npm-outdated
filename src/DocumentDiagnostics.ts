@@ -1,6 +1,6 @@
 import type { Diagnostic, DiagnosticCollection, TextDocument } from "vscode";
 
-import { lazyCallback } from "@/Utils";
+import { lazyCallback } from "#/Utils";
 
 const LAZY_WAITING_DURATION_MS = 100;
 

@@ -8,20 +8,18 @@ node_modules/**
 locales/bundle.l10n.jsonc
 
 .env
-.prettierignore
 .gitignore
-.swcrc
 
 changelog.md
 
-esbuild.config.ts
-eslint.config.mjs
+oxfmt.config.ts
+oxlint.config.ts
+tsdown.config.ts
 vitest.config.ts
 
 bun.lock
 pnpm-lock.yaml
 pnpm-workspace.yaml
-eslint.config.ts
 jest.config.ts
 tsconfig.json
 

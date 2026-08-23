@@ -16,8 +16,8 @@
     "strict": true,
     "target": "ESNext",
     "types": ["node", "vscode", "vitest/globals"],
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "#/*": ["./src/*"] }
   },
-  "include": ["vitest.config.ts", "esbuild.config.ts", "src/**/*.ts"],
+  "include": ["vitest.config.ts", "tsdown.config.ts", "src/**/*.ts"],
   "exclude": ["node_modules"]
 }

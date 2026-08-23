@@ -1,11 +1,10 @@
 import { CodeAction, CodeActionKind, l10n, languages, WorkspaceEdit } from "vscode";
-
 import type { CodeActionProvider, Range, TextDocument } from "vscode";
 
-import { COMMAND_INSTALL_REQUEST } from "@/Command";
-import { DiagnosticType, PackageRelatedDiagnostic } from "@/Diagnostic";
-import { name as packageName } from "@/plugin.json";
-import { hasMajorUpdateProtection } from "@/Settings";
+import { COMMAND_INSTALL_REQUEST } from "#/Command";
+import { DiagnosticType, PackageRelatedDiagnostic } from "#/Diagnostic";
+import { name as packageName } from "#/plugin.json";
+import { hasMajorUpdateProtection } from "#/Settings";
 
 const VERSION_PREFIX_REGEXP = /^\s*(?<op>[=^~]|>=|<=)/;
 
@@ -88,7 +87,6 @@ async function createUpdateSingleAction(
 
 const SINGLE_PACKAGE_TO_INSTALL = 1;
 
-// eslint-disable-next-line @typescript-eslint/promise-function-async
 function createInstallAction(
   document: TextDocument,
   requiresInstallCount: number,
@@ -123,7 +121,6 @@ async function updatePackageVersion(
 }
 
 export class PackageJsonCodeActionProvider implements CodeActionProvider {
-  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   public async provideCodeActions(document: TextDocument, range: Range): Promise<CodeAction[]> {
     const diagnosticsAll = languages.getDiagnostics(document.uri);
 

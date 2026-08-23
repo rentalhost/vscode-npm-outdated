@@ -1,26 +1,20 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable importPlugin/no-namespace */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import * as ChildProcess from "node:child_process";
 import * as FS from "node:fs";
 import { sep } from "node:path";
 
+import type { ReleaseType } from "semver";
 import { vi } from "vitest";
 import * as vscode from "vscode";
 import { Range } from "vscode";
 
-import type { PackageAdvisory } from "@/PackageManager";
-import type { ReleaseType } from "semver";
-
-import { __setRangeSelectFirsts } from "@/__mocks__/vscode";
-import { PackageJsonCodeActionProvider } from "@/CodeAction";
-import { DocumentDecorationManager } from "@/DocumentDecorationManager";
-import { activate } from "@/extension";
-import { PackageManager } from "@/PackageManager";
-import { name as packageName } from "@/plugin.json";
-import * as Utils from "@/Utils";
+import { __setRangeSelectFirsts } from "#/__mocks__/vscode";
+import { PackageJsonCodeActionProvider } from "#/CodeAction";
+import { DocumentDecorationManager } from "#/DocumentDecorationManager";
+import { activate } from "#/extension";
+import type { PackageAdvisory } from "#/PackageManager";
+import { PackageManager } from "#/PackageManager";
+import { name as packageName } from "#/plugin.json";
+import * as Utils from "#/Utils";
 
 interface PluginConfigurations {
   cacheLifetime?: number;
@@ -71,7 +65,6 @@ interface SimulatorOptions {
   triggerChangeAfter?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExplicitAny = any;
 
 const vscodeMock = vscode as {
@@ -409,8 +402,11 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
   vscodeMock.languages.createDiagnosticCollection = vi.fn(() => ({
     clear: vi.fn(),
     delete: vi.fn(),
-    set: (_uri: vscode.Uri, diags: vscode.Diagnostic[]): vscode.Diagnostic[] =>
-      (diagnostics = diags),
+    set: (_uri: vscode.Uri, diags: vscode.Diagnostic[]): vscode.Diagnostic[] => {
+      diagnostics = diags;
+
+      return diags;
+    },
   }));
 
   vscodeMock.languages.getDiagnostics = (): vscode.Diagnostic[] => diagnostics;

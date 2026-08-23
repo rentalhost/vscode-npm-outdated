@@ -3,13 +3,12 @@ import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { prerelease } from "semver";
-
-import type { PackageInfo } from "@/PackageInfo";
 import type { TextDocument } from "vscode";
 
-import { Cache } from "@/Cache";
-import { getCacheLifetime } from "@/Settings";
-import { cacheEnabled, fetchLite } from "@/Utils";
+import { Cache } from "#/Cache";
+import type { PackageInfo } from "#/PackageInfo";
+import { getCacheLifetime } from "#/Settings";
+import { cacheEnabled, fetchLite } from "#/Utils";
 
 const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/;
 

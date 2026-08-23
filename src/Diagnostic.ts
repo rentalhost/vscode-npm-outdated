@@ -2,9 +2,6 @@ import { dirname, sep } from "node:path";
 
 import { intersects, maxSatisfying, minSatisfying, prerelease, satisfies } from "semver";
 import { Diagnostic, DiagnosticSeverity, l10n, Uri, window, workspace } from "vscode";
-
-import type { PackageInfo } from "@/PackageInfo";
-import type { PackagesAdvisories } from "@/PackageManager";
 import type {
   DiagnosticCollection,
   ExtensionContext,
@@ -14,25 +11,27 @@ import type {
   TextEditor,
 } from "vscode";
 
-import { getDocumentPackages } from "@/Document";
-import { DocumentDecoration } from "@/DocumentDecoration";
-import { DocumentDecorationManager } from "@/DocumentDecorationManager";
-import { DocumentDiagnostics } from "@/DocumentDiagnostics";
+import { getDocumentPackages } from "#/Document";
+import { DocumentDecoration } from "#/DocumentDecoration";
+import { DocumentDecorationManager } from "#/DocumentDecorationManager";
+import { DocumentDiagnostics } from "#/DocumentDiagnostics";
+import type { PackageInfo } from "#/PackageInfo";
+import type { PackagesAdvisories } from "#/PackageManager";
 import {
   getPackageManager,
   getPackagesAdvisories,
   PackageManager,
   packageManagerCaches,
   packagesInstalledCaches,
-} from "@/PackageManager";
-import { name as packageName } from "@/plugin.json";
+} from "#/PackageManager";
+import { name as packageName } from "#/plugin.json";
 import {
   getDecorationsMode,
   getParallelProcessesLimit,
   identifySecurityAdvisories,
-} from "@/Settings";
-import { icons } from "@/Theme";
-import { promiseLimit } from "@/Utils";
+} from "#/Settings";
+import { icons } from "#/Theme";
+import { promiseLimit } from "#/Utils";
 
 function isPackageJsonDocument(document: TextDocument): boolean {
   return document.fileName.endsWith(`${sep}package.json`);

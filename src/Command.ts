@@ -2,12 +2,11 @@ import { exec } from "node:child_process";
 import { dirname } from "node:path";
 
 import { commands, l10n, window } from "vscode";
-
 import type { OutputChannel, TextDocument } from "vscode";
 
-import { getPackageManager, PackageManager } from "@/PackageManager";
-import { name as packageName } from "@/plugin.json";
-import { getDoItForMeAction } from "@/Settings";
+import { getPackageManager, PackageManager } from "#/PackageManager";
+import { name as packageName } from "#/plugin.json";
+import { getDoItForMeAction } from "#/Settings";
 
 export const COMMAND_INSTALL = `${packageName}.install`;
 

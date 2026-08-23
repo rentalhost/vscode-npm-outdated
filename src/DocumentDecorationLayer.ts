@@ -1,5 +1,4 @@
 import { window } from "vscode";
-
 import type { DecorationOptions, TextEditorDecorationType } from "vscode";
 
 // We need to store the styles that will be used.
