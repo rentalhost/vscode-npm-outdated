@@ -11,9 +11,9 @@ vi.mock("node:child_process", async () => ({
   ...(await vi.importActual("node:child_process")),
 }));
 
-vi.mock("node:fs", async () => ({
+vi.mock("node:fs/promises", async () => ({
   __esModule: true,
-  ...(await vi.importActual("node:fs")),
+  ...(await vi.importActual("node:fs/promises")),
 }));
 
 vi.mock("#/Utils", () => ({

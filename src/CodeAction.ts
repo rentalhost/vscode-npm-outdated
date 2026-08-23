@@ -1,3 +1,4 @@
+import { firstOf, matchGroups } from "@rheactor/rheactor-core";
 import { CodeAction, CodeActionKind, l10n, languages, WorkspaceEdit } from "vscode";
 import type { CodeActionProvider, Range, TextDocument } from "vscode";
 
@@ -114,7 +115,7 @@ async function updatePackageVersion(
 ): Promise<void> {
   const line = document.lineAt(diagnostic.range.start.line);
   const version = line.text.slice(diagnostic.range.start.character, diagnostic.range.end.character);
-  const versionPrefix = VERSION_PREFIX_REGEXP.exec(version)?.groups?.["op"] ?? "";
+  const versionPrefix = matchGroups<"op">(VERSION_PREFIX_REGEXP, version)?.op ?? "";
   const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
 
   action.edit?.replace(document.uri, diagnostic.range, versionPrefix + versionUpdated);
@@ -170,7 +171,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
     // If only a single-line is selected or range accepts only one diagnostic then create a direct action for a specific package.
     // Else, it will be suggested to update all <number of> packages within range.
     if (diagnosticsSelected.length === 1) {
-      diagnosticsPromises.push(createUpdateSingleAction(document, diagnosticsSelected[0]!));
+      diagnosticsPromises.push(createUpdateSingleAction(document, firstOf(diagnosticsSelected)!));
     } else {
       let updateWarning = "";
 
@@ -206,7 +207,7 @@ export class PackageJsonCodeActionProvider implements CodeActionProvider {
 
       if (diagnosticsSelectedFiltered.length === 1) {
         diagnosticsPromises.push(
-          createUpdateSingleAction(document, diagnosticsSelectedFiltered[0]!),
+          createUpdateSingleAction(document, firstOf(diagnosticsSelectedFiltered)!),
         );
       } else {
         diagnosticsPromises.push(

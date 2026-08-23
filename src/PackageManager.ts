@@ -1,18 +1,17 @@
 import { exec } from "node:child_process";
-import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 
+import { matchGroups, parseAs, singleton, unsafeCast } from "@rheactor/rheactor-core";
+import { exists } from "@rheactor/rheactor-core/node";
 import { prerelease } from "semver";
 import type { TextDocument } from "vscode";
 
 import { Cache } from "#/Cache";
 import type { PackageInfo } from "#/PackageInfo";
 import { getCacheLifetime } from "#/Settings";
-import { cacheEnabled, fetchLite } from "#/Utils";
+import { cacheEnabled, requestSafe } from "#/Utils";
 
 const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/;
-
-type PackagesVersions = Map<string, Cache<Promise<string[] | null>>>;
 
 interface NPMRegistryPackage {
   versions?: Record<
@@ -25,7 +24,7 @@ interface NPMRegistryPackage {
 }
 
 // The `npm view` cache.
-const packagesCache: PackagesVersions = new Map();
+const getPackagesCache = singleton(() => new Map<string, Cache<Promise<string[] | null>>>());
 
 type NPMDependencies = Record<string, { version: string }>;
 
@@ -36,7 +35,7 @@ interface NPMListResponse {
   optionalDependencies?: NPMDependencies;
 }
 
-const packageManagerExecCache = new Cache<Record<string, boolean>>({});
+const getPackageManagerExecCache = singleton(() => new Cache<Record<string, boolean>>({}));
 
 // Return if asked Package Manager is installed.
 async function supportsPackageManager(
@@ -46,10 +45,10 @@ async function supportsPackageManager(
   return new Promise((resolve) => {
     if (
       cacheEnabled() &&
-      packageManagerExecCache.isValid(getCacheLifetime()) &&
-      cmd in packageManagerExecCache.value
+      getPackageManagerExecCache().isValid(getCacheLifetime()) &&
+      cmd in getPackageManagerExecCache().value
     ) {
-      resolve(packageManagerExecCache.value[cmd]!);
+      resolve(getPackageManagerExecCache().value[cmd]!);
 
       return;
     }
@@ -59,7 +58,7 @@ async function supportsPackageManager(
     exec(`${cmd} --version`, { cwd }, (error, stdout) => {
       const isInstalled = !error && PACKAGE_VERSION_REGEXP.test(stdout.trimEnd());
 
-      packageManagerExecCache.value[cmd] = isInstalled;
+      getPackageManagerExecCache().value[cmd] = isInstalled;
 
       resolve(isInstalled);
     });
@@ -82,20 +81,20 @@ function getPackagesInstalledEntries(packages: NPMListResponse): PackagesInstall
       packageInfo.version,
     ]);
 
-    return Object.fromEntries(packageEntries) as PackagesInstalled;
+    return unsafeCast<PackagesInstalled>(Object.fromEntries(packageEntries));
   }
 
   return null;
 }
 
-const packagesAdvisoriesCache = new Map<string, Cache<PackageAdvisory[]>>();
+const getPackagesAdvisoriesCache = singleton(() => new Map<string, Cache<PackageAdvisory[]>>());
 
 // Get all package versions through `npm view` command.
 export async function getPackageVersions(name: string): Promise<string[] | null> {
   // If the package query is in the cache (even in the process of being executed), return it.
   // This ensures that we will not have duplicate execution process while it is within lifetime.
   if (cacheEnabled()) {
-    const cachePackages = packagesCache.get(name);
+    const cachePackages = getPackagesCache().get(name);
 
     if (cachePackages?.isValid(getCacheLifetime()) === true) {
       return cachePackages.value;
@@ -105,8 +104,8 @@ export async function getPackageVersions(name: string): Promise<string[] | null>
   // We'll use Registry NPM to get the versions directly from the source.
   // This avoids loading processes via `npm view`.
   // The process is cached if it is triggered quickly, within lifetime.
-  const execPromise = fetchLite<NPMRegistryPackage>({
-    acceptSimplified: true,
+  const execPromise = requestSafe<NPMRegistryPackage>({
+    headers: { Accept: "application/vnd.npm.install-v1+json" },
     url: `https://registry.npmjs.org/${name}`,
   }).then(async (data): Promise<string[] | null> => {
     if (data?.versions) {
@@ -120,22 +119,12 @@ export async function getPackageVersions(name: string): Promise<string[] | null>
     // In this case, we'll let `npm` handle it directly.
     return new Promise((resolve) => {
       exec(`npm view --json ${name} versions`, (error, stdout) => {
-        if (!error) {
-          try {
-            resolve(JSON.parse(stdout) as string[] | null);
-
-            return;
-          } catch {
-            /* empty */
-          }
-        }
-
-        resolve(null);
+        resolve(error ? null : (parseAs<string[]>(stdout) ?? null));
       });
     });
   });
 
-  packagesCache.set(name, new Cache(execPromise));
+  getPackagesCache().set(name, new Cache(execPromise));
 
   return execPromise;
 }
@@ -166,13 +155,16 @@ export async function getPackageManager(document: TextDocument): Promise<Package
   }
 
   // Using PNPM with already installed node_modules/ directory.
-  if (existsSync(`${cwd}/node_modules/.pnpm`) && (await supportsPackageManager(document, "pnpm"))) {
+  if (
+    (await exists(`${cwd}/node_modules/.pnpm`)) &&
+    (await supportsPackageManager(document, "pnpm"))
+  ) {
     return setPackageManager(PackageManager.PNPM);
   }
 
   // Not installed node_modules/ but pnpm-lock.yaml is present.
   else if (
-    existsSync(`${cwd}/pnpm-lock.yaml`) &&
+    (await exists(`${cwd}/pnpm-lock.yaml`)) &&
     (await supportsPackageManager(document, "pnpm"))
   ) {
     return setPackageManager(PackageManager.PNPM);
@@ -180,7 +172,7 @@ export async function getPackageManager(document: TextDocument): Promise<Package
 
   // Bun text-format lockfile (Bun 1.2+) or legacy binary lockfile.
   else if (
-    (existsSync(`${cwd}/bun.lock`) || existsSync(`${cwd}/bun.lockb`)) &&
+    ((await exists(`${cwd}/bun.lock`)) || (await exists(`${cwd}/bun.lockb`))) &&
     (await supportsPackageManager(document, "bun"))
   ) {
     return setPackageManager(PackageManager.BUN);
@@ -208,10 +200,10 @@ export function parseBunList(data: string): PackagesInstalled | null {
   const dependencies: PackagesInstalled = {};
 
   for (const line of data.split("\n")) {
-    const match = lineRegex.exec(line);
+    const groups = matchGroups<"name" | "version">(lineRegex, line);
 
-    if (match?.groups) {
-      dependencies[match.groups["name"]!] = match.groups["version"]!;
+    if (groups?.["name"] !== undefined && groups["version"] !== undefined) {
+      dependencies[groups["name"]] = groups["version"];
     }
   }
 
@@ -227,7 +219,7 @@ export function parseJSON<T>(data: string): T {
 
   while (dataOffset !== -1) {
     try {
-      return JSON.parse(data.slice(dataOffset)) as T;
+      return unsafeCast<T>(JSON.parse(data.slice(dataOffset)));
     } catch {
       /* empty */
     }
@@ -343,7 +335,7 @@ export async function getPackagesAdvisories(
         !packageInfo.name ||
         !packageInfo.isNameValid() ||
         packageInfo.isVersionComplex() ||
-        packagesAdvisoriesCache.get(packageInfo.name)?.isValid(getCacheLifetime()) === true
+        getPackagesAdvisoriesCache().get(packageInfo.name)?.isValid(getCacheLifetime()) === true
       ) {
         throw new Error("Invalid package info");
       }
@@ -369,8 +361,9 @@ export async function getPackagesAdvisories(
 
   if (Object.keys(packages).length > 0) {
     // Query advisories through the NPM Registry.
-    const responseAdvisories = await fetchLite<PackagesAdvisories | undefined>({
+    const responseAdvisories = await requestSafe<PackagesAdvisories>({
       body: packages,
+      headers: { "Content-Type": "application/json" },
       method: "post",
       url: "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
     });
@@ -378,20 +371,23 @@ export async function getPackagesAdvisories(
     // Fills the packages with their respective advisories.
     if (responseAdvisories) {
       for (const [packageName, packageAdvisories] of Object.entries(responseAdvisories)) {
-        packagesAdvisoriesCache.set(packageName, new Cache(packageAdvisories as PackageAdvisory[]));
+        getPackagesAdvisoriesCache().set(
+          packageName,
+          new Cache(unsafeCast<PackageAdvisory[]>(packageAdvisories)),
+        );
       }
     }
 
     // Autocomplete packages without any advisories.
     for (const packageName of Object.keys(packages)) {
-      if (!packagesAdvisoriesCache.has(packageName)) {
-        packagesAdvisoriesCache.set(packageName, new Cache([]));
+      if (!getPackagesAdvisoriesCache().has(packageName)) {
+        getPackagesAdvisoriesCache().set(packageName, new Cache([]));
       }
     }
   }
 
   return new Map(
-    [...packagesAdvisoriesCache.entries()].map(([packageName, packageAdvisory]) => [
+    [...getPackagesAdvisoriesCache().entries()].map(([packageName, packageAdvisory]) => [
       packageName,
       packageAdvisory.value,
     ]),

@@ -1,13 +1,5 @@
-import type { IncomingMessage } from "node:http";
-import { request } from "node:https";
-import { brotliDecompress, gzipSync } from "node:zlib";
-
-interface FetchLite {
-  body?: object;
-  method?: "get" | "post";
-  acceptSimplified?: boolean;
-  url: string;
-}
+import { request } from "@rheactor/rheactor-core";
+import type { RequestOptions } from "@rheactor/rheactor-core";
 
 type OptionalPromise<T> = Promise<T> | T;
 
@@ -123,63 +115,15 @@ export function cacheEnabled(): boolean {
   return true;
 }
 
-// A simple post request.
-// Based on https://github.com/vasanthv/fetch-lite/blob/master/index.js
-export async function fetchLite<T>(options: FetchLite) {
-  return new Promise<T | undefined>((resolve) => {
-    try {
-      const url = new URL(options.url);
+// A JSON request that never rejects, resolving to undefined on network failures
+// or invalid/empty response bodies. Unlike `request`, it doesn't set a default Content-Type,
+// so pass explicit headers when sending a body.
+export async function requestSafe<T>(options: RequestOptions): Promise<T | undefined> {
+  try {
+    const { data } = await request<T>(options);
 
-      const thisRequest = request(
-        url.href,
-        { method: options.method ?? "get" },
-        (response: IncomingMessage) => {
-          const responseBuffers: Buffer[] = [];
-
-          response.on("data", (data: Buffer) => responseBuffers.push(data));
-
-          response.on("error", () => {
-            resolve(undefined);
-          });
-
-          response.on("end", () => {
-            const responseBuffer = Buffer.concat(responseBuffers);
-
-            if (response.headers["content-encoding"] === undefined) {
-              resolve(JSON.parse(responseBuffer.toString()) as T);
-
-              return;
-            }
-
-            brotliDecompress(responseBuffer, (_error, contents) => {
-              resolve(JSON.parse(contents.toString()) as T);
-            });
-          });
-        },
-      );
-
-      thisRequest.setHeader("Content-Type", "application/json");
-      thisRequest.setHeader("Content-Encoding", "gzip");
-      thisRequest.setHeader("Accept-Encoding", "br");
-
-      if (options.acceptSimplified === true) {
-        thisRequest.setHeader("Accept", "application/vnd.npm.install-v1+json");
-      }
-
-      if (options.body !== undefined) {
-        const bodyStringify = gzipSync(JSON.stringify(options.body));
-
-        thisRequest.setHeader("Content-Length", bodyStringify.length);
-        thisRequest.write(bodyStringify);
-      }
-
-      thisRequest.on("error", () => {
-        resolve(undefined);
-      });
-
-      thisRequest.end();
-    } catch {
-      resolve(undefined);
-    }
-  });
+    return data;
+  } catch {
+    return undefined;
+  }
 }

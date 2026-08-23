@@ -1,7 +1,9 @@
 import * as ChildProcess from "node:child_process";
-import * as FS from "node:fs";
+import * as FSPromises from "node:fs/promises";
 import { sep } from "node:path";
 
+import { firstOf } from "@rheactor/rheactor-core";
+import type { RequestOptions } from "@rheactor/rheactor-core";
 import type { ReleaseType } from "semver";
 import { vi } from "vitest";
 import * as vscode from "vscode";
@@ -79,12 +81,12 @@ const ChildProcessMock = ChildProcess as {
   exec: ExplicitAny;
 };
 
-const FSMock = FS as {
-  existsSync: ExplicitAny;
+const FSPromisesMock = FSPromises as {
+  access: ExplicitAny;
 };
 
 const UtilsMock = Utils as {
-  fetchLite: unknown;
+  requestSafe: unknown;
 
   cacheEnabled(): boolean;
 };
@@ -143,42 +145,40 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
     },
   };
 
-  FSMock.existsSync = (file: string): boolean => {
-    if (file.endsWith("/.pnpm") && packageManager === PackageManager.PNPM) {
-      return true;
-    }
+  FSPromisesMock.access = (file: string): Promise<void> => {
+    const isKnown =
+      (file.endsWith("/.pnpm") && packageManager === PackageManager.PNPM) ||
+      (file.endsWith("/bun.lock") && packageManager === PackageManager.BUN);
 
-    if (file.endsWith("/bun.lock") && packageManager === PackageManager.BUN) {
-      return true;
-    }
-
-    return false;
+    return isKnown ? Promise.resolve() : Promise.reject(new Error(`ENOENT: ${file}`));
   };
 
   UtilsMock.cacheEnabled = (): boolean => options.cacheEnabled === true;
 
-  UtilsMock.fetchLite = ({ url }: { url: string }): unknown => {
-    if (url.endsWith("/bulk")) {
-      return options.packagesAdvisories;
+  UtilsMock.requestSafe = async <T>({ url }: RequestOptions): Promise<T | undefined> => {
+    const target = String(url);
+
+    if (target.endsWith("/bulk")) {
+      return options.packagesAdvisories as T;
     }
 
     if (options.packagesRepository) {
       for (const name of Object.keys(options.packagesRepository)) {
         if (
-          url.endsWith(`/${name}`) &&
+          target.endsWith(`/${name}`) &&
           name in options.packagesRepository &&
           !name.startsWith("@private/")
         ) {
-          return Promise.resolve({
+          return {
             versions: Object.fromEntries(
               options.packagesRepository[name]?.map((version) => [version, { version }]) as [],
             ),
-          });
+          } as T;
         }
       }
     }
 
-    return Promise.resolve();
+    return undefined;
   };
 
   ChildProcessMock.exec = (
@@ -366,7 +366,7 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
   ): string | undefined => {
     windowsInformation.push([message, items]);
 
-    return items[0];
+    return firstOf(items);
   };
 
   vscodeMock.window.showInformationMessage = vscodeMock.window.showErrorMessage;

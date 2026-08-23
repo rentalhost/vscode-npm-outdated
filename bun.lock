@@ -8,10 +8,11 @@
         "semver": "^7.8.5",
       },
       "devDependencies": {
+        "@rheactor/rheactor-core": "github:rheactor/rheactor-core",
         "@rheactor/rheactor-oxc-config": "github:rheactor/rheactor-oxc-config",
         "@types/node": "^26.2.0",
         "@types/semver": "^7.8.0",
-        "@types/vscode": "^1.134.0",
+        "@types/vscode": "1.134.0",
         "globals": "^17.11.0",
         "oxfmt": "^0.64.0",
         "oxlint-tsgolint": "^7.0.2001",
@@ -115,6 +116,8 @@
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.79.0", "", { "os": "win32", "cpu": "x64" }, "sha512-mEelcCMMBS57sIXh2veGMNy+pQwuGtcMxHxGIZWQ5Ba9pJ5jCCUFOZB9E2JhBaxGsURe+WGe0zJp4RVre52gpQ=="],
 
     "@quansync/fs": ["@quansync/fs@1.0.0", "", { "dependencies": { "quansync": "^1.0.0" } }, "sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ=="],
+
+    "@rheactor/rheactor-core": ["@rheactor/rheactor-core@github:rheactor/rheactor-core#14aca16", { "dependencies": { "is-path-inside": "^4.0.0" }, "peerDependencies": { "next": "^16.3.2", "tailwind-merge": "^3.6.0" }, "optionalPeers": ["next", "tailwind-merge"] }, "rheactor-rheactor-core-14aca16", "sha512-mUJPtbvrrQEfmvTN3AcvFxos81vfh5NiBQEM13RnrIErY7bereCw0QA9KhKPDXx4wPIugjO/QD8uvtkPK6sbhA=="],
 
     "@rheactor/rheactor-oxc-config": ["@rheactor/rheactor-oxc-config@github:rheactor/rheactor-oxc-config#1e96658", { "dependencies": { "oxfmt": "^0.64.0", "oxlint": "^1.79.0", "oxlint-tsgolint": "^7.0.2001" }, "peerDependencies": { "next": "^16.3.2", "react": "^19.2.8", "vitest": "^4.1.11" }, "optionalPeers": ["next", "react", "vitest"] }, "rheactor-rheactor-oxc-config-1e96658", "sha512-2/z1H+u2Qk/+IkvHcaf3XsPLHIzgYbHcn1z8EBKxGhdh/w9r1I1KmH5Xn3BnjcCqCaCelvSsSKYRnRsT34nOdg=="],
 
@@ -303,6 +306,8 @@
     "hookable": ["hookable@6.1.1", "", {}, "sha512-U9LYDy1CwhMCnprUfeAZWZGByVbhd54hwepegYTK7Pi5NvqEj63ifz5z+xukznehT7i6NIZRu89Ay1AZmRsLEQ=="],
 
     "import-without-cache": ["import-without-cache@0.4.0", "", {}, "sha512-NkJQA7oZ4YHQhd2+H3BoRFKF3d/XNsiKpHZCQEMH9pDX27hQQLsTyOocyRgaIVtf8gHX3Nt3LPkR4e5EdtPAGQ=="],
+
+    "is-path-inside": ["is-path-inside@4.0.0", "", {}, "sha512-lJJV/5dYS+RcL8uQdBDW9c9uWFLLBNRyFhnAKXw5tVqLlKZ4RMGZKv+YQ/IA3OhD+RpbJa1LLFM1FQPGyIXvOA=="],
 
     "lightningcss": ["lightningcss@1.33.0", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.33.0", "lightningcss-darwin-arm64": "1.33.0", "lightningcss-darwin-x64": "1.33.0", "lightningcss-freebsd-x64": "1.33.0", "lightningcss-linux-arm-gnueabihf": "1.33.0", "lightningcss-linux-arm64-gnu": "1.33.0", "lightningcss-linux-arm64-musl": "1.33.0", "lightningcss-linux-x64-gnu": "1.33.0", "lightningcss-linux-x64-musl": "1.33.0", "lightningcss-win32-arm64-msvc": "1.33.0", "lightningcss-win32-x64-msvc": "1.33.0" } }, "sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA=="],
 

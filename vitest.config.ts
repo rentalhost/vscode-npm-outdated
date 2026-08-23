@@ -13,5 +13,12 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/out/**"],
     globals: true,
     maxConcurrency: 20,
+    server: {
+      deps: {
+        // Keeps @rheactor/rheactor-core inside the Vitest module runner,
+        // so `vi.mock("node:*")` also applies to its own Node imports.
+        inline: ["@rheactor/rheactor-core"],
+      },
+    },
   },
 });

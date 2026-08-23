@@ -1,5 +1,7 @@
+import { firstOf, sleep } from "@rheactor/rheactor-core";
+
 import type { PackageAdvisory } from "#/PackageManager";
-import { cacheEnabled, fetchLite, lazyCallback, promiseLimit } from "#/Utils";
+import { cacheEnabled, lazyCallback, promiseLimit, requestSafe } from "#/Utils";
 
 const TIMER_MULTIPLIER = 3;
 
@@ -18,9 +20,7 @@ describe("utils", () => {
       expect(Date.now() - now).toBeLessThan(25 * TIMER_MULTIPLIER);
     });
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 50 * TIMER_MULTIPLIER);
-    });
+    await sleep(50 * TIMER_MULTIPLIER);
   });
 
   it("lazy callback: avoid first call", async () => {
@@ -42,9 +42,7 @@ describe("utils", () => {
       expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER);
     });
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 50 * TIMER_MULTIPLIER);
-    });
+    await sleep(50 * TIMER_MULTIPLIER);
   });
 
   it("lazy callback: wait first call", async () => {
@@ -61,9 +59,7 @@ describe("utils", () => {
       expect(Date.now() - now).toBeGreaterThanOrEqual(25 * TIMER_MULTIPLIER);
     });
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 50 * TIMER_MULTIPLIER);
-    });
+    await sleep(50 * TIMER_MULTIPLIER);
   });
 
   it("lazy callback: avoid second call", async () => {
@@ -97,9 +93,7 @@ describe("utils", () => {
       expect(nowDiff).toBeLessThan(50 * TIMER_MULTIPLIER);
     });
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 50 * TIMER_MULTIPLIER);
-    });
+    await sleep(50 * TIMER_MULTIPLIER);
   });
 
   it("promise limit: prevent multiple simultaneous processes", async () => {
@@ -107,11 +101,7 @@ describe("utils", () => {
 
     const processesLimit = promiseLimit(2);
 
-    async function delay(): Promise<unknown> {
-      return new Promise((resolve) => {
-        setTimeout(resolve, 25 * TIMER_MULTIPLIER);
-      });
-    }
+    const delay = (): Promise<void> => sleep(25 * TIMER_MULTIPLIER);
 
     const now = Date.now();
 
@@ -132,11 +122,7 @@ describe("utils", () => {
 
     const processesLimit = promiseLimit(0);
 
-    async function delay(): Promise<unknown> {
-      return new Promise((resolve) => {
-        setTimeout(resolve, 25 * TIMER_MULTIPLIER);
-      });
-    }
+    const delay = (): Promise<void> => sleep(25 * TIMER_MULTIPLIER);
 
     const now = Date.now();
 
@@ -155,11 +141,12 @@ describe("utils", () => {
     expect(cacheEnabled()).toBeTruthy();
   });
 
-  it("fetchLite: access to NPM Registry (advisories): empty", async () => {
+  it("requestSafe: access to NPM Registry (advisories): empty", async () => {
     expect.assertions(1);
 
-    const fetchSuccess = await fetchLite({
+    const fetchSuccess = await requestSafe<Record<string, unknown>>({
       body: { "npm-outdated": ["2.0.3"] },
+      headers: { "Content-Type": "application/json" },
       method: "post",
       url: "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
     });
@@ -167,46 +154,49 @@ describe("utils", () => {
     expect(fetchSuccess).toStrictEqual({});
   });
 
-  it("fetchLite: access to NPM Registry (advisories): found", async () => {
+  it("requestSafe: access to NPM Registry (advisories): found", async () => {
     expect.assertions(3);
 
-    const fetchSuccess: { lodash: PackageAdvisory[] } = (await fetchLite({
+    const fetchSuccess = await requestSafe<{ lodash: PackageAdvisory[] }>({
       body: { lodash: ["4.17.20"] },
+      headers: { "Content-Type": "application/json" },
       method: "post",
       url: "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
-    }))!;
+    });
 
     expect(fetchSuccess).toHaveProperty("lodash");
-    expect(fetchSuccess.lodash).toHaveLength(5);
-    expect(fetchSuccess.lodash[0]!.url).toBe("https://github.com/advisories/GHSA-35jh-r3h4-6jhm");
+    expect(fetchSuccess?.lodash).toHaveLength(5);
+    expect(firstOf(fetchSuccess!.lodash)?.url).toBe(
+      "https://github.com/advisories/GHSA-35jh-r3h4-6jhm",
+    );
   });
 
-  it("fetchLite: access to NPM Registry (package)", async () => {
+  it("requestSafe: access to NPM Registry (package)", async () => {
     expect.assertions(1);
 
-    const fetchSuccess = await fetchLite({
-      acceptSimplified: true,
+    const fetchSuccess = await requestSafe<object>({
+      headers: { Accept: "application/vnd.npm.install-v1+json" },
       url: "https://registry.npmjs.org/node-fetch",
     });
 
     expect(fetchSuccess).toBeInstanceOf(Object);
   }, 5000);
 
-  it("fetchLite: access to a private NPM Registry without auth token", async () => {
+  it("requestSafe: access to a private NPM Registry without auth token", async () => {
     expect.assertions(1);
 
-    const fetchSuccess = await fetchLite<{ error: string }>({
+    const fetchSuccess = await requestSafe<{ error: string }>({
       url: "https://registry.npmjs.org/@fortawesome/pro-light-svg-icons",
     });
 
     expect(fetchSuccess?.error).toBe("Not found");
   });
 
-  it("fetchLite: invalid URL", async () => {
+  it("requestSafe: unreachable host resolves to undefined", async () => {
     expect.assertions(1);
 
-    const fetchSuccess = await fetchLite({ url: "invalid" });
+    const fetchSuccess = await requestSafe({ url: "https://invalid" });
 
     expect(fetchSuccess).toBeUndefined();
-  });
+  }, 5000);
 });
