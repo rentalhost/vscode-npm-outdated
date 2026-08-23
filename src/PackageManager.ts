@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
 import { dirname } from "node:path";
 
-import { matchGroups, parseAs, singleton, unsafeCast } from "@rheactor/rheactor-core";
+import { attempt, matchGroups, parseAs, singleton, unsafeCast } from "@rheactor/rheactor-core";
 import { exists } from "@rheactor/rheactor-core/node";
 import { prerelease } from "semver";
 import type { TextDocument } from "vscode";
@@ -249,25 +249,20 @@ export async function getPackagesInstalled(
   const execPromise = new Promise<PackagesInstalled | undefined>((resolve) => {
     if (packageManager === PackageManager.PNPM) {
       exec("pnpm ls --json --depth=0", { cwd }, (_error, stdout) => {
-        if (stdout) {
-          try {
-            const execResult = parseJSON<[NPMListResponse]>(stdout);
+        const packagesInstalled = stdout
+          ? attempt(
+              () => {
+                const execResult = parseJSON<[NPMListResponse]>(stdout);
 
-            if (Array.isArray(execResult)) {
-              const packagesInstalled = getPackagesInstalledEntries(execResult[0]);
+                return Array.isArray(execResult)
+                  ? getPackagesInstalledEntries(execResult[0])
+                  : null;
+              },
+              () => null,
+            )
+          : null;
 
-              if (packagesInstalled !== null) {
-                resolve(packagesInstalled);
-
-                return;
-              }
-            }
-          } catch {
-            /* empty */
-          }
-        }
-
-        resolve(undefined);
+        resolve(packagesInstalled ?? undefined);
       });
 
       return;
@@ -292,21 +287,14 @@ export async function getPackagesInstalled(
     }
 
     exec("npm ls --json --depth=0", { cwd }, (_error, stdout) => {
-      if (stdout) {
-        try {
-          const packagesInstalled = getPackagesInstalledEntries(parseJSON(stdout));
+      const packagesInstalled = stdout
+        ? attempt(
+            () => getPackagesInstalledEntries(parseJSON(stdout)),
+            () => null,
+          )
+        : null;
 
-          if (packagesInstalled !== null) {
-            resolve(packagesInstalled);
-
-            return;
-          }
-        } catch {
-          /* empty */
-        }
-      }
-
-      resolve(undefined);
+      resolve(packagesInstalled ?? undefined);
     });
   });
 

@@ -117,7 +117,7 @@
 
     "@quansync/fs": ["@quansync/fs@1.0.0", "", { "dependencies": { "quansync": "^1.0.0" } }, "sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ=="],
 
-    "@rheactor/rheactor-core": ["@rheactor/rheactor-core@github:rheactor/rheactor-core#14aca16", { "dependencies": { "is-path-inside": "^4.0.0" }, "peerDependencies": { "next": "^16.3.2", "tailwind-merge": "^3.6.0" }, "optionalPeers": ["next", "tailwind-merge"] }, "rheactor-rheactor-core-14aca16", "sha512-mUJPtbvrrQEfmvTN3AcvFxos81vfh5NiBQEM13RnrIErY7bereCw0QA9KhKPDXx4wPIugjO/QD8uvtkPK6sbhA=="],
+    "@rheactor/rheactor-core": ["@rheactor/rheactor-core@github:rheactor/rheactor-core#32caee5", { "dependencies": { "is-path-inside": "^4.0.0" }, "peerDependencies": { "next": "^16.3.2", "tailwind-merge": "^3.6.0" }, "optionalPeers": ["next", "tailwind-merge"] }, "rheactor-rheactor-core-32caee5", "sha512-c7TQAHPwZmiBiNxo5ytoCfiKAItgpj7JNHGRmcT/VXtHx7J4rnUM5vkHZVBdfikLu/ynf4d2chekRRXILGh0aw=="],
 
     "@rheactor/rheactor-oxc-config": ["@rheactor/rheactor-oxc-config@github:rheactor/rheactor-oxc-config#1e96658", { "dependencies": { "oxfmt": "^0.64.0", "oxlint": "^1.79.0", "oxlint-tsgolint": "^7.0.2001" }, "peerDependencies": { "next": "^16.3.2", "react": "^19.2.8", "vitest": "^4.1.11" }, "optionalPeers": ["next", "react", "vitest"] }, "rheactor-rheactor-oxc-config-1e96658", "sha512-2/z1H+u2Qk/+IkvHcaf3XsPLHIzgYbHcn1z8EBKxGhdh/w9r1I1KmH5Xn3BnjcCqCaCelvSsSKYRnRsT34nOdg=="],
 

@@ -1,4 +1,4 @@
-import { request } from "@rheactor/rheactor-core";
+import { attempt, request } from "@rheactor/rheactor-core";
 import type { RequestOptions } from "@rheactor/rheactor-core";
 
 type OptionalPromise<T> = Promise<T> | T;
@@ -119,11 +119,8 @@ export function cacheEnabled(): boolean {
 // or invalid/empty response bodies. Unlike `request`, it doesn't set a default Content-Type,
 // so pass explicit headers when sending a body.
 export async function requestSafe<T>(options: RequestOptions): Promise<T | undefined> {
-  try {
-    const { data } = await request<T>(options);
-
-    return data;
-  } catch {
-    return undefined;
-  }
+  return attempt<T | undefined>(
+    async () => (await request<T>(options)).data,
+    () => undefined,
+  );
 }
