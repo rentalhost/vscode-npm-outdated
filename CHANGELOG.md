@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.1.1] - 2026-08-23
+
+### Fixed
+
+- Fixes an issue where the packaged extension failed to load (`Cannot find module 'semver'`) because
+  the tsdown migration stopped bundling runtime dependencies while packaging still uses
+  `--no-dependencies`;
+
 ## [4.1.0] - 2026-08-23
 
 ### Changed

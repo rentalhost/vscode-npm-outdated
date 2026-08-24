@@ -1,7 +1,7 @@
 {
   "name": "npm-outdated-plus",
   "displayName": "npm-outdated-plus",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Highlights packages with newer versions available directly in package.json files. Fully compatible with npm, pnpm and bun.",
   "categories": [
     "Linters",
@@ -51,9 +51,6 @@
     "vscode:prepublish": "bun run build",
     "vscode:publish": "vsce publish --no-dependencies"
   },
-  "dependencies": {
-    "semver": "^7.8.5"
-  },
   "devDependencies": {
     "@rheactor/rheactor-core": "github:rheactor/rheactor-core",
     "@rheactor/rheactor-oxc-config": "github:rheactor/rheactor-oxc-config",
@@ -63,6 +60,7 @@
     "globals": "^17.11.0",
     "oxfmt": "^0.64.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "semver": "^7.8.5",
     "tsdown": "^0.22.14",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"

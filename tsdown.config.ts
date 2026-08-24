@@ -9,7 +9,5 @@ export default defineConfig({
   target: "esnext",
   minify: true,
   dts: false,
-  deps: {
-    neverBundle: ["vscode"],
-  },
+  deps: { alwaysBundle: ["semver"], neverBundle: ["vscode"] },
 });
