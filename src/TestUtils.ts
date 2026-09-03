@@ -122,13 +122,16 @@ const windowMock = window as unknown as WindowMock;
 const workspaceMock = workspace as unknown as WorkspaceMock;
 const languagesMock = languages as unknown as LanguagesMock;
 
-function dependenciesAsChildren(dependencies: Record<string, string>): DocumentSymbol[] {
+function dependenciesAsChildren(
+  dependencies: Record<string, string>,
+  startLine: number,
+): DocumentSymbol[] {
   return Object.entries(dependencies).map(
     ([name, version], entryIndex) =>
       ({
         detail: version,
         name,
-        range: new Range(entryIndex, 0, entryIndex, 0),
+        range: new Range(startLine + entryIndex, 0, startLine + entryIndex, 0),
       }) as DocumentSymbol,
   );
 }
@@ -342,30 +345,35 @@ export async function vscodeSimulator(options: SimulatorOptions = {}) {
         return undefined;
       }
 
+      let currentLine = 0;
+
       if (options.packageJson.dependencies) {
         symbols.push({
-          children: dependenciesAsChildren(options.packageJson.dependencies),
+          children: dependenciesAsChildren(options.packageJson.dependencies, currentLine),
           name: "dependencies",
         });
+        currentLine += Object.keys(options.packageJson.dependencies).length;
       }
 
       if (options.packageJson.devDependencies) {
         symbols.push({
-          children: dependenciesAsChildren(options.packageJson.devDependencies),
+          children: dependenciesAsChildren(options.packageJson.devDependencies, currentLine),
           name: "devDependencies",
         });
+        currentLine += Object.keys(options.packageJson.devDependencies).length;
       }
 
       if (options.packageJson.peerDependencies) {
         symbols.push({
-          children: dependenciesAsChildren(options.packageJson.peerDependencies),
+          children: dependenciesAsChildren(options.packageJson.peerDependencies, currentLine),
           name: "peerDependencies",
         });
+        currentLine += Object.keys(options.packageJson.peerDependencies).length;
       }
 
       if (options.packageJson.optionalDependencies) {
         symbols.push({
-          children: dependenciesAsChildren(options.packageJson.optionalDependencies),
+          children: dependenciesAsChildren(options.packageJson.optionalDependencies, currentLine),
           name: "optionalDependencies",
         });
       }

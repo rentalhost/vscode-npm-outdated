@@ -31,9 +31,12 @@ function mapDependencyRange(
   );
 }
 
-export type DocumentsPackagesInterface = Record<string, PackageInfo>;
+export type DocumentsPackagesInterface = PackageInfo[];
 
 // Gets an array of packages used in the document, regardless of dependency type.
+// The same package may appear in multiple dependency sections (e.g. `devDependencies`
+// and `peerDependencies`), so every occurrence is preserved instead of being
+// deduplicated by name.
 export async function getDocumentPackages(
   document: TextDocument,
 ): Promise<DocumentsPackagesInterface> {
@@ -46,30 +49,28 @@ export async function getDocumentPackages(
     );
 
     if (symbols !== undefined) {
-      documentsPackages = Object.fromEntries(
-        [
-          ...mapDependencyRange(
-            document,
-            symbols.find((symbol) => symbol.name === "dependencies"),
-          ),
-          ...mapDependencyRange(
-            document,
-            symbols.find((symbol) => symbol.name === "devDependencies"),
-          ),
-          ...mapDependencyRange(
-            document,
-            symbols.find((symbol) => symbol.name === "peerDependencies"),
-          ),
-          ...mapDependencyRange(
-            document,
-            symbols.find((symbol) => symbol.name === "optionalDependencies"),
-          ),
-        ].map((documentPackage) => [documentPackage.name, documentPackage]),
-      );
+      documentsPackages = [
+        ...mapDependencyRange(
+          document,
+          symbols.find((symbol) => symbol.name === "dependencies"),
+        ),
+        ...mapDependencyRange(
+          document,
+          symbols.find((symbol) => symbol.name === "devDependencies"),
+        ),
+        ...mapDependencyRange(
+          document,
+          symbols.find((symbol) => symbol.name === "peerDependencies"),
+        ),
+        ...mapDependencyRange(
+          document,
+          symbols.find((symbol) => symbol.name === "optionalDependencies"),
+        ),
+      ];
     }
 
     return symbols !== undefined;
   }, 33);
 
-  return (documentsPackages as DocumentsPackagesInterface | undefined) ?? {};
+  return (documentsPackages as DocumentsPackagesInterface | undefined) ?? [];
 }

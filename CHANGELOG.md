@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.1.2] - 2026-09-03
+
+- Fixes an issue where a package listed in multiple dependency sections was analyzed only once;
+  every occurrence now gets its own diagnostic and decoration;
+
 ## [4.1.1] - 2026-08-23
 
 ### Fixed

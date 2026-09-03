@@ -255,6 +255,24 @@ describe("package diagnostics", () => {
     expect(decorations.at(0)).toContain("Update available:");
   });
 
+  it("same package in multiple sections, all occurrences are analyzed", async () => {
+    expect.assertions(4);
+
+    const { decorations, diagnostics } = await vscodeSimulator({
+      packageJson: {
+        devDependencies: { "npm-outdated": "^1.0.0" },
+        peerDependencies: { "npm-outdated": "^1.0.0" },
+      },
+      packagesInstalled: { "npm-outdated": "1.0.0" },
+      packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
+    });
+
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(1)?.message).toContain("Newer version");
+    expect(decorations.filter(Boolean)).toHaveLength(2);
+  });
+
   it("valid dependency, package version not available", async () => {
     expect.assertions(2);
 

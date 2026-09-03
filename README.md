@@ -42,3 +42,40 @@ Three code actions are available in `package.json` files:
 1. `Update package` — Updates a single package to the latest version (shown when a single package is
    selected).
 1. `Update x packages` — Updates all selected packages (shown when multiple packages are selected).
+
+## Stack
+
+- TypeScript (^7.0.2) bundled by **tsdown** (^0.22.14) into `out/extension.cjs`.
+- Tests on **Vitest** (^4.1.11); lint/format on the **Oxc** suite (oxlint + oxfmt).
+- Runtime `semver` (^7.8.5) and `@rheactor/rheactor-core` (GitHub dependency), both bundled.
+- Engine: VS Code `^1.134.0`.
+
+## Folder structure
+
+| Path                      | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `src/extension.ts`        | Extension entry point (`activate`).                              |
+| `src/*.ts`                | Source modules, one concern per file (PascalCase).               |
+| `src/__mocks__/vscode.ts` | Vitest mock of the `vscode` API.                                 |
+| `src/TestUtils.ts`        | `vscodeSimulator()` harness shared by integration tests.         |
+| `src/plugin.json`         | Extension name used for command IDs and the settings prefix.     |
+| `locales/`                | l10n bundles (`bundle.l10n.jsonc`, `.pt-br`, `.es`).             |
+| `assets/icon.png`         | Marketplace icon.                                                |
+| `images/`                 | README screenshots.                                              |
+| `out/`                    | Build output (`extension.cjs`), not committed.                   |
+| `.vscode/`                | Debug/task configs (`Run Extension` launches an extension host). |
+
+## Scripts & commands
+
+Always run through `bun run <script>` (never call binaries directly):
+
+| Script           | Command                                                |
+| ---------------- | ------------------------------------------------------ |
+| `build`          | `tsdown`                                               |
+| `lint`           | `bun run typecheck && bun run oxlint && bun run oxfmt` |
+| `typecheck`      | `tsc --noEmit`                                         |
+| `test`           | `vitest --run`                                         |
+| `oxlint`         | `oxlint ./src`                                         |
+| `oxfmt`          | `oxfmt --check ./src ./locales ./.vscode`              |
+| `vscode:package` | `vsce package --no-dependencies`                       |
+| `vscode:publish` | `vsce publish --no-dependencies`                       |

@@ -9,24 +9,24 @@ compatible with **npm**, **pnpm** and **bun**.
 - **Stack:** TypeScript (^7.0.2) compiled and bundled by **tsdown** into a single minified CJS file
   at `out/extension.cjs`; tests run on **Vitest** (^4.1.11); lint/format on the **Oxc** suite
   (oxlint + oxfmt) driven by `@rheactor/rheactor-oxc-config`.
-- **Entry point:** `src/extension.ts` (`activate`/`deactivate`), declared as
-  `"main": "./out/extension.cjs"` with activation event `onLanguage:json`.
+- **Entry point:** `src/extension.ts` (`activate`), declared as `"main": "./out/extension.cjs"` with
+  activation event `onLanguage:json`.
 - **Runtime dependency:** `semver` only (bundled). `@rheactor/rheactor-core` (GitHub dependency) is
   also embedded by the bundler.
 - **Folder structure:**
 
-| Path                   | Purpose                                                                 |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `src/*.ts`             | Source modules, PascalCase named (one concern per file).                |
-| `src/extension.ts`     | Extension activation/deactivation.                                      |
-| `src/plugin.json`      | Extension name used to build command IDs and settings prefix.           |
-| `src/__mocks__/vscode` | Vitest mock of the `vscode` API.                                        |
-| `src/TestUtils.ts`     | `vscodeSimulator()` harness shared by integration tests.                |
-| `locales/`             | l10n bundles: `bundle.l10n.jsonc` (English reference), `.pt-br`, `.es`. |
-| `assets/icon.png`      | Marketplace icon.                                                       |
-| `images/`              | README screenshots.                                                     |
-| `out/`                 | Build output (`extension.cjs`), not committed.                          |
-| `.vscode/`             | Debug/task configs (`Run Extension` launches an extension host).        |
+| Path                      | Purpose                                                                 |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `src/*.ts`                | Source modules, PascalCase named (one concern per file).                |
+| `src/extension.ts`        | Extension activation.                                                   |
+| `src/plugin.json`         | Extension name used to build command IDs and settings prefix.           |
+| `src/__mocks__/vscode.ts` | Vitest mock of the `vscode` API.                                        |
+| `src/TestUtils.ts`        | `vscodeSimulator()` harness shared by integration tests.                |
+| `locales/`                | l10n bundles: `bundle.l10n.jsonc` (English reference), `.pt-br`, `.es`. |
+| `assets/icon.png`         | Marketplace icon.                                                       |
+| `images/`                 | README screenshots.                                                     |
+| `out/`                    | Build output (`extension.cjs`), not committed.                          |
+| `.vscode/`                | Debug/task configs (`Run Extension` launches an extension host).        |
 
 ## Mandatory rules
 
@@ -55,7 +55,7 @@ compatible with **npm**, **pnpm** and **bun**.
 
 - Framework: **Vitest** (`vitest.config.ts`), `globals: true`, run with `bun run test`.
 - Test files are colocated next to the code under test as `*.test.ts` (`src/Utils.test.ts`,
-  `src/extension.test.ts`).
+  `src/PackageManager.test.ts`, `src/extension.test.ts`).
 - The `vscode` API is mocked via `vi.mock("vscode")` aliasing to `src/__mocks__/vscode.ts`;
   filesystem/process side effects are mocked through `node:fs/promises` and `node:child_process`
   module mocks driven by `src/TestUtils.ts`.

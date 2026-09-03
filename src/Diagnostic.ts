@@ -313,7 +313,7 @@ export async function generatePackagesDiagnostics(
   }
 
   // Read dependencies from package.json to get the name of packages used.
-  const packagesInfos = Object.values(await getDocumentPackages(document));
+  const packagesInfos = await getDocumentPackages(document);
 
   const documentDecorations =
     getDecorationsMode() === "disabled" ? undefined : new DocumentDecoration(document);
