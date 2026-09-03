@@ -1,4 +1,4 @@
-import { attempt, request } from "@rheactor/rheactor-core";
+import { attempt, request, sleep } from "@rheactor/rheactor-core";
 import type { RequestOptions } from "@rheactor/rheactor-core";
 
 type OptionalPromise<T> = Promise<T> | T;
@@ -30,22 +30,18 @@ export function lazyCallback<T, A>(
       // If no callback is running right now, then run the current one immediately.
       isRunning = true;
 
-      await (wait === 0
-        ? Promise.resolve(callback(...args))
-        : new Promise((resolve) => {
-            setTimeout(() => {
-              // Must execute the callback with the most recent arguments, if any.
-              if (argumentsNext) {
-                const argumentsNextCopied = argumentsNext;
+      if (wait === 0) {
+        await callback(...args);
+      } else {
+        await sleep(wait);
 
-                argumentsNext = undefined;
+        // Must execute the callback with the most recent arguments, if any.
+        const argumentsForExecution = argumentsNext ?? args;
 
-                void Promise.resolve(callback(...argumentsNextCopied)).then(resolve);
-              } else {
-                void Promise.resolve(callback(...args)).then(resolve);
-              }
-            }, wait);
-          }));
+        argumentsNext = undefined;
+
+        await callback(...argumentsForExecution);
+      }
 
       // If afterwards there is already some callback waiting to be executed, it starts it after the delay.
       // Note that this will only happen after the full completion of the previous process.
@@ -67,20 +63,24 @@ export function lazyCallback<T, A>(
 
 // This function checks if a promise can be processed as long as the conditional callback returns true.
 // @see https://stackoverflow.com/a/64947598/755393
+async function waitCondition(
+  condition: () => Promise<boolean> | boolean,
+  retryDelay: number,
+): Promise<void> {
+  await sleep(retryDelay);
+
+  if (await condition()) {
+    return;
+  }
+
+  return waitCondition(condition, retryDelay);
+}
+
 export async function waitUntil(
   condition: () => Promise<boolean> | boolean,
   retryDelay = 0,
 ): Promise<void> {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      void Promise.resolve(condition()).then((result) => {
-        if (result) {
-          clearInterval(interval);
-          resolve();
-        }
-      });
-    }, retryDelay);
-  });
+  await waitCondition(condition, retryDelay);
 }
 
 // This function lets you control how many promises can be worked on concurrently.
@@ -120,7 +120,11 @@ export function cacheEnabled(): boolean {
 // so pass explicit headers when sending a body.
 export async function requestSafe<T>(options: RequestOptions): Promise<T | undefined> {
   return attempt<T | undefined>(
-    async () => (await request<T>(options)).data,
+    async () => {
+      const response = await request<T>(options);
+
+      return response.data;
+    },
     () => undefined,
   );
 }

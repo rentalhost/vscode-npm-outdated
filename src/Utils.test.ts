@@ -102,7 +102,9 @@ describe("utils", () => {
 
     const processesLimit = promiseLimit(2);
 
-    const delay = (): Promise<void> => sleep(25 * TIMER_MULTIPLIER);
+    async function delay(): Promise<void> {
+      await sleep(25 * TIMER_MULTIPLIER);
+    }
 
     const now = Date.now();
 
@@ -123,7 +125,9 @@ describe("utils", () => {
 
     const processesLimit = promiseLimit(0);
 
-    const delay = (): Promise<void> => sleep(25 * TIMER_MULTIPLIER);
+    async function delay(): Promise<void> {
+      await sleep(25 * TIMER_MULTIPLIER);
+    }
 
     const now = Date.now();
 
@@ -139,7 +143,7 @@ describe("utils", () => {
   });
 
   it("cache enabled (mock function-only)", () => {
-    expect(cacheEnabled()).toBeTruthy();
+    expect(cacheEnabled()).toBe(true);
   });
 
   it("requestSafe: access to NPM Registry (advisories): empty", async () => {

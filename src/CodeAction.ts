@@ -1,5 +1,5 @@
 import { firstOf, matchGroups } from "@rheactor/rheactor-core";
-import { CodeAction, CodeActionKind, l10n, languages, WorkspaceEdit } from "vscode";
+import { CodeAction, CodeActionKind, languages, l10n as localization, WorkspaceEdit } from "vscode";
 import type { CodeActionProvider, Range, TextDocument } from "vscode";
 
 import { COMMAND_INSTALL_REQUEST } from "#/Command";
@@ -7,7 +7,22 @@ import { DiagnosticType, PackageRelatedDiagnostic } from "#/Diagnostic";
 import { name as packageName } from "#/plugin.json";
 import { hasMajorUpdateProtection } from "#/Settings";
 
-const VERSION_PREFIX_REGEXP = /^\s*(?<op>[=^~]|>=|<=)/;
+const { t } = localization;
+
+const VERSION_PREFIX_REGEXP = /^\s*(?<op>[=^~]|>=|<=)/v;
+
+async function updatePackageVersion(
+  action: CodeAction,
+  document: TextDocument,
+  diagnostic: PackageRelatedDiagnostic,
+): Promise<void> {
+  const line = document.lineAt(diagnostic.range.start.line);
+  const version = line.text.slice(diagnostic.range.start.character, diagnostic.range.end.character);
+  const versionPrefix = matchGroups<"op">(VERSION_PREFIX_REGEXP, version)?.op ?? "";
+  const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
+
+  action.edit?.replace(document.uri, diagnostic.range, versionPrefix + String(versionUpdated));
+}
 
 async function createAction(
   document: TextDocument,
@@ -67,16 +82,12 @@ async function createUpdateSingleAction(
   const versionLatest = await diagnostic.packageRelated.getVersionLatest();
   const updateWarning =
     hasMajorUpdateProtection() && (await diagnostic.packageRelated.requiresVersionMajorUpdate())
-      ? ` (${l10n.t("major")})`
+      ? ` (${t("major")})`
       : "";
 
   const action = createAction(
     document,
-    `${l10n.t(
-      'Update "{0}" to {1}',
-      diagnostic.packageRelated.name,
-      versionLatest!,
-    )}${updateWarning}`,
+    `${t('Update "{0}" to {1}', diagnostic.packageRelated.name, versionLatest!)}${updateWarning}`,
     [diagnostic],
     true,
   );
@@ -88,14 +99,11 @@ async function createUpdateSingleAction(
 
 const SINGLE_PACKAGE_TO_INSTALL = 1;
 
-function createInstallAction(
-  document: TextDocument,
-  requiresInstallCount: number,
-): Promise<CodeAction> {
+function createInstallAction(document: TextDocument, requiresInstallCount: number): CodeAction {
   const action = new CodeAction(
     requiresInstallCount === SINGLE_PACKAGE_TO_INSTALL
-      ? l10n.t("Install package")
-      : l10n.t("Install packages"),
+      ? t("Install package")
+      : t("Install packages"),
     CodeActionKind.QuickFix,
   );
 
@@ -105,174 +113,170 @@ function createInstallAction(
     title: "update",
   };
 
-  return Promise.resolve(action);
+  return action;
 }
 
-async function updatePackageVersion(
-  action: CodeAction,
+async function provideCodeActionsImplementation(
   document: TextDocument,
-  diagnostic: PackageRelatedDiagnostic,
-): Promise<void> {
-  const line = document.lineAt(diagnostic.range.start.line);
-  const version = line.text.slice(diagnostic.range.start.character, diagnostic.range.end.character);
-  const versionPrefix = matchGroups<"op">(VERSION_PREFIX_REGEXP, version)?.op ?? "";
-  const versionUpdated = await diagnostic.packageRelated.getVersionLatest();
+  range: Range,
+): Promise<CodeAction[]> {
+  const diagnosticsAll = languages.getDiagnostics(document.uri);
 
-  action.edit?.replace(document.uri, diagnostic.range, versionPrefix + versionUpdated);
+  // Get all diagnostics from this extension.
+
+  const diagnostics = diagnosticsAll.filter(
+    (diagnostic) =>
+      typeof diagnostic.code === "object" &&
+      diagnostic.code.value === packageName &&
+      (!PackageRelatedDiagnostic.is(diagnostic) || diagnostic.type === DiagnosticType.GENERAL),
+  ) as PackageRelatedDiagnostic[];
+
+  // Checks if an CodeAction comes through a diagnostic.
+  const diagnosticsSelected = diagnostics.filter(
+    (diagnostic) => diagnostic.range.intersection(range) !== undefined,
+  );
+
+  // Checks if there are any packages waiting to be installed.
+  let requiresInstallCount = 0;
+
+  for (const diagnostic of diagnosticsAll) {
+    if (
+      PackageRelatedDiagnostic.is(diagnostic) &&
+      diagnostic.type === DiagnosticType.READY_TO_INSTALL &&
+      diagnostic.range.intersection(range) !== undefined
+    ) {
+      requiresInstallCount++;
+
+      if (requiresInstallCount >= 2) {
+        break;
+      }
+    }
+  }
+
+  if (diagnosticsSelected.length === 0) {
+    if (requiresInstallCount) {
+      return [createInstallAction(document, requiresInstallCount)];
+    }
+
+    return [];
+  }
+
+  const diagnosticsPromises: Array<Promise<CodeAction>> = [];
+
+  let diagnosticsSelectedFiltered = diagnosticsSelected;
+
+  // If only a single-line is selected or range accepts only one diagnostic then create a direct action for a specific package.
+  // Else, it will be suggested to update all <number of> packages within range.
+  if (diagnosticsSelected.length === 1) {
+    diagnosticsPromises.push(createUpdateSingleAction(document, firstOf(diagnosticsSelected)!));
+  } else {
+    let updateWarning = "";
+
+    // Ensures that we will not include major updates together with minor, if protection is enabled.
+    if (hasMajorUpdateProtection()) {
+      const diagnosticsSelectedMajors: PackageRelatedDiagnostic[] = [];
+
+      await Promise.all(
+        diagnosticsSelected.map(async (diagnostic) =>
+          diagnostic.packageRelated
+            .requiresVersionMajorUpdate()
+            .then((result) => [diagnostic, result] as const),
+        ),
+      ).then((results) => {
+        for (const [diagnostic, result] of results) {
+          if (result) {
+            diagnosticsSelectedMajors.push(diagnostic);
+          }
+        }
+      });
+
+      if (diagnosticsSelectedMajors.length > 0) {
+        if (diagnosticsSelectedMajors.length < diagnosticsSelected.length) {
+          updateWarning = ` (${t("excluding major")})`;
+          diagnosticsSelectedFiltered = diagnosticsSelectedFiltered.filter(
+            (diagnostic) => !diagnosticsSelectedMajors.includes(diagnostic),
+          );
+        } else {
+          updateWarning = ` (${t("major")})`;
+        }
+      }
+    }
+
+    if (diagnosticsSelectedFiltered.length === 1) {
+      diagnosticsPromises.push(
+        createUpdateSingleAction(document, firstOf(diagnosticsSelectedFiltered)!),
+      );
+    } else {
+      diagnosticsPromises.push(
+        createUpdateManyAction(
+          document,
+          diagnosticsSelectedFiltered,
+          `${t(
+            "Update {0} selected packages",
+            diagnosticsSelectedFiltered.length,
+          )}${updateWarning}`,
+        ),
+      );
+    }
+  }
+
+  // If the total number of diagnostics is greater than the number of selected ones, then it is suggested to update all.
+  if (diagnostics.length > 1 && diagnostics.length > diagnosticsSelectedFiltered.length) {
+    let updateWarning = "";
+    let diagnosticsFiltered = diagnostics;
+
+    // Ensures that we will not include major updates together with minor, if protection is enabled.
+    if (hasMajorUpdateProtection()) {
+      const diagnosticsMajors: PackageRelatedDiagnostic[] = [];
+
+      await Promise.all(
+        diagnostics.map(async (diagnostic) =>
+          diagnostic.packageRelated
+            .requiresVersionMajorUpdate()
+            .then((result) => [diagnostic, result] as const),
+        ),
+      ).then((results) => {
+        for (const [diagnostic, result] of results) {
+          if (result) {
+            diagnosticsMajors.push(diagnostic);
+          }
+        }
+      });
+
+      if (diagnosticsMajors.length > 0) {
+        if (diagnosticsMajors.length < diagnostics.length) {
+          updateWarning = ` (${t("excluding major")})`;
+          diagnosticsFiltered = diagnosticsFiltered.filter(
+            (diagnostic) => !diagnosticsMajors.includes(diagnostic),
+          );
+        } else {
+          updateWarning = ` (${t("major")})`;
+        }
+      }
+    }
+
+    if (diagnosticsFiltered.length > diagnosticsSelectedFiltered.length) {
+      diagnosticsPromises.push(
+        createUpdateManyAction(
+          document,
+          diagnosticsFiltered,
+          `${t("Update all {0} packages", diagnosticsFiltered.length)}${updateWarning}`,
+        ),
+      );
+    }
+  }
+
+  if (requiresInstallCount) {
+    diagnosticsPromises.push(Promise.resolve(createInstallAction(document, requiresInstallCount)));
+  }
+
+  return Promise.all(diagnosticsPromises);
 }
 
 export class PackageJsonCodeActionProvider implements CodeActionProvider {
+  private readonly provider = provideCodeActionsImplementation;
+
   public async provideCodeActions(document: TextDocument, range: Range): Promise<CodeAction[]> {
-    const diagnosticsAll = languages.getDiagnostics(document.uri);
-
-    // Get all diagnostics from this extension.
-
-    const diagnostics = diagnosticsAll.filter(
-      (diagnostic) =>
-        typeof diagnostic.code === "object" &&
-        diagnostic.code.value === packageName &&
-        (!PackageRelatedDiagnostic.is(diagnostic) || diagnostic.type === DiagnosticType.GENERAL),
-    ) as PackageRelatedDiagnostic[];
-
-    // Checks if an CodeAction comes through a diagnostic.
-    const diagnosticsSelected = diagnostics.filter(
-      (diagnostic) => diagnostic.range.intersection(range) !== undefined,
-    );
-
-    // Checks if there are any packages waiting to be installed.
-    let requiresInstallCount = 0;
-
-    for (const diagnostic of diagnosticsAll) {
-      if (
-        PackageRelatedDiagnostic.is(diagnostic) &&
-        diagnostic.type === DiagnosticType.READY_TO_INSTALL &&
-        diagnostic.range.intersection(range) !== undefined
-      ) {
-        requiresInstallCount++;
-
-        if (requiresInstallCount >= 2) {
-          break;
-        }
-      }
-    }
-
-    if (diagnosticsSelected.length === 0) {
-      if (requiresInstallCount) {
-        return [await createInstallAction(document, requiresInstallCount)];
-      }
-
-      return [];
-    }
-
-    const diagnosticsPromises: Array<Promise<CodeAction>> = [];
-
-    let diagnosticsSelectedFiltered = diagnosticsSelected;
-
-    // If only a single-line is selected or range accepts only one diagnostic then create a direct action for a specific package.
-    // Else, it will be suggested to update all <number of> packages within range.
-    if (diagnosticsSelected.length === 1) {
-      diagnosticsPromises.push(createUpdateSingleAction(document, firstOf(diagnosticsSelected)!));
-    } else {
-      let updateWarning = "";
-
-      // Ensures that we will not include major updates together with minor, if protection is enabled.
-      if (hasMajorUpdateProtection()) {
-        const diagnosticsSelectedMajors: PackageRelatedDiagnostic[] = [];
-
-        await Promise.all(
-          diagnosticsSelected.map(async (diagnostic) =>
-            diagnostic.packageRelated
-              .requiresVersionMajorUpdate()
-              .then((result) => [diagnostic, result] as const),
-          ),
-        ).then((results) => {
-          for (const [diagnostic, result] of results) {
-            if (result) {
-              diagnosticsSelectedMajors.push(diagnostic);
-            }
-          }
-        });
-
-        if (diagnosticsSelectedMajors.length > 0) {
-          if (diagnosticsSelectedMajors.length < diagnosticsSelected.length) {
-            updateWarning = ` (${l10n.t("excluding major")})`;
-            diagnosticsSelectedFiltered = diagnosticsSelectedFiltered.filter(
-              (diagnostic) => !diagnosticsSelectedMajors.includes(diagnostic),
-            );
-          } else {
-            updateWarning = ` (${l10n.t("major")})`;
-          }
-        }
-      }
-
-      if (diagnosticsSelectedFiltered.length === 1) {
-        diagnosticsPromises.push(
-          createUpdateSingleAction(document, firstOf(diagnosticsSelectedFiltered)!),
-        );
-      } else {
-        diagnosticsPromises.push(
-          createUpdateManyAction(
-            document,
-            diagnosticsSelectedFiltered,
-            `${l10n.t(
-              "Update {0} selected packages",
-              diagnosticsSelectedFiltered.length,
-            )}${updateWarning}`,
-          ),
-        );
-      }
-    }
-
-    // If the total number of diagnostics is greater than the number of selected ones, then it is suggested to update all.
-    if (diagnostics.length > 1 && diagnostics.length > diagnosticsSelectedFiltered.length) {
-      let updateWarning = "";
-      let diagnosticsFiltered = diagnostics;
-
-      // Ensures that we will not include major updates together with minor, if protection is enabled.
-      if (hasMajorUpdateProtection()) {
-        const diagnosticsMajors: PackageRelatedDiagnostic[] = [];
-
-        await Promise.all(
-          diagnostics.map(async (diagnostic) =>
-            diagnostic.packageRelated
-              .requiresVersionMajorUpdate()
-              .then((result) => [diagnostic, result] as const),
-          ),
-        ).then((results) => {
-          for (const [diagnostic, result] of results) {
-            if (result) {
-              diagnosticsMajors.push(diagnostic);
-            }
-          }
-        });
-
-        if (diagnosticsMajors.length > 0) {
-          if (diagnosticsMajors.length < diagnostics.length) {
-            updateWarning = ` (${l10n.t("excluding major")})`;
-            diagnosticsFiltered = diagnosticsFiltered.filter(
-              (diagnostic) => !diagnosticsMajors.includes(diagnostic),
-            );
-          } else {
-            updateWarning = ` (${l10n.t("major")})`;
-          }
-        }
-      }
-
-      if (diagnosticsFiltered.length > diagnosticsSelectedFiltered.length) {
-        diagnosticsPromises.push(
-          createUpdateManyAction(
-            document,
-            diagnosticsFiltered,
-            `${l10n.t("Update all {0} packages", diagnosticsFiltered.length)}${updateWarning}`,
-          ),
-        );
-      }
-    }
-
-    if (requiresInstallCount) {
-      diagnosticsPromises.push(createInstallAction(document, requiresInstallCount));
-    }
-
-    return Promise.all(diagnosticsPromises);
+    return this.provider(document, range);
   }
 }

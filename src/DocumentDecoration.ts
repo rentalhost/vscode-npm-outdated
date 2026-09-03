@@ -1,5 +1,5 @@
 import { prerelease } from "semver";
-import { l10n, Range, window } from "vscode";
+import { l10n as localization, Range, window } from "vscode";
 import type { TextDocument, TextEditor } from "vscode";
 
 import type { PackageRelatedDiagnostic } from "#/Diagnostic";
@@ -10,6 +10,8 @@ import type { PackageAdvisory } from "#/PackageManager";
 import { getDecorationsMode } from "#/Settings";
 import { icons, margins, themeDark, themeLight } from "#/Theme";
 import { lazyCallback } from "#/Utils";
+
+const { t } = localization;
 
 export class DocumentDecoration {
   private readonly editors: TextEditor[];
@@ -61,7 +63,7 @@ export class DocumentDecoration {
     if (await packageInfo.packageRelated.requiresInstallCommand()) {
       this.setLine(line, [
         new Message(icons.pending, themeLight.iconAvailable, themeDark.iconAvailable),
-        new Message(l10n.t("Now run your package manager install command.")),
+        new Message(t("Now run your package manager install command.")),
       ]);
 
       return;
@@ -70,9 +72,7 @@ export class DocumentDecoration {
     const updateDetails = [
       new Message(icons.updatable, themeLight.iconUpdatable, themeDark.iconUpdatable),
       new Message(
-        packageVersionInstalled === undefined
-          ? l10n.t("Latest version:")
-          : l10n.t("Update available:"),
+        packageVersionInstalled === undefined ? t("Latest version:") : t("Update available:"),
         themeLight.labelUpdatable,
         themeDark.labelUpdatable,
       ),
@@ -82,17 +82,13 @@ export class DocumentDecoration {
     if (packageVersionInstalled === undefined) {
       // If the package has not yet been installed by the user, but defined in the dependencies.
       updateDetails.push(
-        new Message(
-          `(${l10n.t("install pending")})`,
-          themeLight.labelPending,
-          themeDark.labelPending,
-        ),
+        new Message(`(${t("install pending")})`, themeLight.labelPending, themeDark.labelPending),
       );
     } else if (await packageInfo.packageRelated.isVersionLatestAlreadyInstalled()) {
       // If the latest version is already installed, it informs that only a user-defined version will be bumped.
       updateDetails.push(
         new Message(
-          `(${l10n.t("already installed, just formalization")})`,
+          `(${t("already installed, just formalization")})`,
           themeLight.labelFormalization,
           themeDark.labelFormalization,
         ),
@@ -103,7 +99,7 @@ export class DocumentDecoration {
     if (await packageInfo.packageRelated.requiresVersionMajorUpdate()) {
       updateDetails.push(
         new Message(
-          `(${l10n.t("attention: major update!")})`,
+          `(${t("attention: major update!")})`,
           themeLight.labelMajor,
           themeDark.labelMajor,
         ),
@@ -114,11 +110,7 @@ export class DocumentDecoration {
     // This will only happen if the user defined version is also pre-release.
     if (prerelease(versionLatest)) {
       updateDetails.push(
-        new Message(
-          `<${l10n.t("pre-release")}>`,
-          themeLight.labelPreRelease,
-          themeDark.labelPreRelease,
-        ),
+        new Message(`<${t("pre-release")}>`, themeLight.labelPreRelease, themeDark.labelPreRelease),
       );
     }
 
@@ -129,14 +121,14 @@ export class DocumentDecoration {
     this.setLine(packageInfo.getLine(), [
       new Message(icons.advisory, themeLight.iconAdvisory, themeDark.iconAdvisory),
       new Message(
-        `${l10n.t("Security advisory")} (${l10n.t(
+        `${t("Security advisory")} (${t(
           packageAdvisory.severity.toUpperCase(),
         )}/${packageAdvisory.cvss.score.toFixed(1)}):`,
         themeLight.labelAdvisory,
         themeDark.labelAdvisory,
       ),
       new Message(
-        `${packageAdvisory.title.replace(/\.$/, "")}.`,
+        `${packageAdvisory.title.replace(/\.$/v, "")}.`,
         themeLight.labelAdvisoryTitle,
         themeDark.labelAdvisoryTitle,
       ),

@@ -1,4 +1,5 @@
 import { exec } from "node:child_process";
+import type { ExecException } from "node:child_process";
 import { dirname } from "node:path";
 
 import { attempt, matchGroups, parseAs, singleton, unsafeCast } from "@rheactor/rheactor-core";
@@ -11,7 +12,38 @@ import type { PackageInfo } from "#/PackageInfo";
 import { getCacheLifetime } from "#/Settings";
 import { cacheEnabled, requestSafe } from "#/Utils";
 
-const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/;
+const PACKAGE_VERSION_REGEXP = /^\d+\.\d+\.\d+$/v;
+
+interface ExecOptions {
+  cwd?: string;
+}
+
+// Wraps `exec`, resolving with the stdout string. On failure the rejection
+// carries `stdout`/`stderr`, since commands like `npm ls` print usable JSON
+// even with a non-zero exit code. (`promisify(exec)` cannot be used here: its
+// custom promisify hook resolves with `{ stdout, stderr }`, not a string.)
+function execAsync(command: string, options?: ExecOptions): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(
+      command,
+      options as never,
+      (error: ExecException | null, stdout: string, stderr: string) => {
+        if (error) {
+          reject(Object.assign(error, { stderr, stdout }));
+        } else {
+          resolve(stdout);
+        }
+      },
+    );
+  });
+}
+
+export enum PackageManager {
+  NPM = 0,
+  PNPM = 1,
+  BUN = 2,
+  NONE = 3,
+}
 
 interface NPMRegistryPackage {
   versions?: Record<
@@ -42,27 +74,28 @@ async function supportsPackageManager(
   document: TextDocument,
   cmd: "bun" | "npm" | "pnpm",
 ): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (
-      cacheEnabled() &&
-      getPackageManagerExecCache().isValid(getCacheLifetime()) &&
-      cmd in getPackageManagerExecCache().value
-    ) {
-      resolve(getPackageManagerExecCache().value[cmd]!);
+  if (
+    cacheEnabled() &&
+    getPackageManagerExecCache().isValid(getCacheLifetime()) &&
+    cmd in getPackageManagerExecCache().value
+  ) {
+    return getPackageManagerExecCache().value[cmd]!;
+  }
 
-      return;
-    }
+  const cwd = dirname(document.uri.fsPath);
 
-    const cwd = dirname(document.uri.fsPath);
+  const isInstalled = await attempt(
+    async () => {
+      const stdout = await execAsync(`${cmd} --version`, { cwd });
 
-    exec(`${cmd} --version`, { cwd }, (error, stdout) => {
-      const isInstalled = !error && PACKAGE_VERSION_REGEXP.test(stdout.trimEnd());
+      return PACKAGE_VERSION_REGEXP.test(stdout.trimEnd());
+    },
+    () => false,
+  );
 
-      getPackageManagerExecCache().value[cmd] = isInstalled;
+  getPackageManagerExecCache().value[cmd] = isInstalled;
 
-      resolve(isInstalled);
-    });
-  });
+  return isInstalled;
 }
 
 function getPackagesInstalledEntries(packages: NPMListResponse): PackagesInstalled | null {
@@ -89,6 +122,32 @@ function getPackagesInstalledEntries(packages: NPMListResponse): PackagesInstall
 
 const getPackagesAdvisoriesCache = singleton(() => new Map<string, Cache<PackageAdvisory[]>>());
 
+// Fetches the package versions from the NPM Registry.
+// When the registry query fails, uses `npm view` as a fallback, which usually
+// happens when the package needs authentication. In this case, we'll let `npm`
+// handle it directly.
+async function fetchPackageVersions(name: string): Promise<string[] | null> {
+  const data = await requestSafe<NPMRegistryPackage>({
+    headers: { Accept: "application/vnd.npm.install-v1+json" },
+    url: `https://registry.npmjs.org/${name}`,
+  });
+
+  if (data?.versions) {
+    return Object.values(data.versions)
+      .filter(({ deprecated }) => deprecated === undefined)
+      .map(({ version }) => version);
+  }
+
+  return attempt(
+    async () => {
+      const stdout = await execAsync(`npm view --json ${name} versions`);
+
+      return parseAs<string[]>(stdout) ?? null;
+    },
+    () => null,
+  );
+}
+
 // Get all package versions through `npm view` command.
 export async function getPackageVersions(name: string): Promise<string[] | null> {
   // If the package query is in the cache (even in the process of being executed), return it.
@@ -104,25 +163,7 @@ export async function getPackageVersions(name: string): Promise<string[] | null>
   // We'll use Registry NPM to get the versions directly from the source.
   // This avoids loading processes via `npm view`.
   // The process is cached if it is triggered quickly, within lifetime.
-  const execPromise = requestSafe<NPMRegistryPackage>({
-    headers: { Accept: "application/vnd.npm.install-v1+json" },
-    url: `https://registry.npmjs.org/${name}`,
-  }).then(async (data): Promise<string[] | null> => {
-    if (data?.versions) {
-      return Object.values(data.versions)
-        .filter(({ deprecated }) => deprecated === undefined)
-        .map(({ version }) => version);
-    }
-
-    // Uses `npm view` as a fallback.
-    // This usually happens when the package needs authentication.
-    // In this case, we'll let `npm` handle it directly.
-    return new Promise((resolve) => {
-      exec(`npm view --json ${name} versions`, (error, stdout) => {
-        resolve(error ? null : (parseAs<string[]>(stdout) ?? null));
-      });
-    });
-  });
+  const execPromise = fetchPackageVersions(name);
 
   getPackagesCache().set(name, new Cache(execPromise));
 
@@ -162,16 +203,12 @@ export async function getPackageManager(document: TextDocument): Promise<Package
     return setPackageManager(PackageManager.PNPM);
   }
 
-  // Not installed node_modules/ but pnpm-lock.yaml is present.
-  else if (
-    (await exists(`${cwd}/pnpm-lock.yaml`)) &&
-    (await supportsPackageManager(document, "pnpm"))
-  ) {
+  if ((await exists(`${cwd}/pnpm-lock.yaml`)) && (await supportsPackageManager(document, "pnpm"))) {
     return setPackageManager(PackageManager.PNPM);
   }
 
   // Bun text-format lockfile (Bun 1.2+) or legacy binary lockfile.
-  else if (
+  if (
     ((await exists(`${cwd}/bun.lock`)) || (await exists(`${cwd}/bun.lockb`))) &&
     (await supportsPackageManager(document, "bun"))
   ) {
@@ -179,7 +216,7 @@ export async function getPackageManager(document: TextDocument): Promise<Package
   }
 
   // In last case, check for NPM.
-  else if (await supportsPackageManager(document, "npm")) {
+  if (await supportsPackageManager(document, "npm")) {
     return setPackageManager(PackageManager.NPM);
   }
 
@@ -196,7 +233,7 @@ export const packagesInstalledCaches = new Map<
 // (no JSON mode is available). Matches lines like `├── name@version`
 // or `└── @scope/name@version` and ignores headers/log noise.
 export function parseBunList(data: string): PackagesInstalled | null {
-  const lineRegex = /^[└├]── (?<name>(?:@[^/]+\/)?[^\s@]+)@(?<version>\S+)/;
+  const lineRegex = /^[└├]── (?<name>(?:@[^\/]+\/)?[^\s@]+)@(?<version>\S+)/v;
   const dependencies: PackagesInstalled = {};
 
   for (const line of data.split("\n")) {
@@ -230,6 +267,66 @@ export function parseJSON<T>(data: string): T {
   throw new Error("invalid JSON response");
 }
 
+// Returns the packages installed by the informed Package Manager.
+async function getPackagesInstalledByManager(
+  packageManager: PackageManager,
+  cwd: string,
+): Promise<PackagesInstalled | undefined> {
+  let stdout: string;
+
+  let command: string;
+
+  if (packageManager === PackageManager.PNPM) {
+    command = "pnpm ls --json --depth=0";
+  } else if (packageManager === PackageManager.BUN) {
+    command = "bun list";
+  } else {
+    command = "npm ls --json --depth=0";
+  }
+
+  try {
+    stdout = await execAsync(command, { cwd });
+  } catch (error) {
+    const errorStdout = (error as { stdout?: unknown }).stdout;
+
+    stdout = typeof errorStdout === "string" ? errorStdout : "";
+  }
+
+  if (packageManager === PackageManager.PNPM) {
+    const packagesInstalled = stdout
+      ? attempt(
+          () => {
+            const execResult = parseJSON<[NPMListResponse]>(stdout);
+
+            if (!Array.isArray(execResult)) {
+              return null;
+            }
+
+            const [execResultFirst] = execResult;
+
+            return getPackagesInstalledEntries(execResultFirst);
+          },
+          () => null,
+        )
+      : null;
+
+    return packagesInstalled ?? undefined;
+  }
+
+  if (packageManager === PackageManager.BUN) {
+    return parseBunList(stdout) ?? undefined;
+  }
+
+  const packagesInstalled = stdout
+    ? attempt(
+        () => getPackagesInstalledEntries(parseJSON(stdout)),
+        () => null,
+      )
+    : null;
+
+  return packagesInstalled ?? undefined;
+}
+
 // Returns packages installed by the user and their respective versions.
 export async function getPackagesInstalled(
   document: TextDocument,
@@ -246,57 +343,7 @@ export async function getPackagesInstalled(
 
   const packageManager = await getPackageManager(document);
 
-  const execPromise = new Promise<PackagesInstalled | undefined>((resolve) => {
-    if (packageManager === PackageManager.PNPM) {
-      exec("pnpm ls --json --depth=0", { cwd }, (_error, stdout) => {
-        const packagesInstalled = stdout
-          ? attempt(
-              () => {
-                const execResult = parseJSON<[NPMListResponse]>(stdout);
-
-                return Array.isArray(execResult)
-                  ? getPackagesInstalledEntries(execResult[0])
-                  : null;
-              },
-              () => null,
-            )
-          : null;
-
-        resolve(packagesInstalled ?? undefined);
-      });
-
-      return;
-    }
-
-    if (packageManager === PackageManager.BUN) {
-      exec("bun list", { cwd }, (_error, stdout) => {
-        if (stdout) {
-          const packagesInstalled = parseBunList(stdout);
-
-          if (packagesInstalled !== null) {
-            resolve(packagesInstalled);
-
-            return;
-          }
-        }
-
-        resolve(undefined);
-      });
-
-      return;
-    }
-
-    exec("npm ls --json --depth=0", { cwd }, (_error, stdout) => {
-      const packagesInstalled = stdout
-        ? attempt(
-            () => getPackagesInstalledEntries(parseJSON(stdout)),
-            () => null,
-          )
-        : null;
-
-      resolve(packagesInstalled ?? undefined);
-    });
-  });
+  const execPromise = getPackagesInstalledByManager(packageManager, cwd);
 
   packagesInstalledCaches.set(cwd, new Cache(execPromise));
 
@@ -308,7 +355,7 @@ export interface PackageAdvisory {
   severity: string;
   title: string;
   url: string;
-  vulnerable_versions: string;
+  [`vulnerable_versions`]: string;
 }
 
 export type PackagesAdvisories = Map<string, PackageAdvisory[]>;
@@ -380,11 +427,4 @@ export async function getPackagesAdvisories(
       packageAdvisory.value,
     ]),
   );
-}
-
-export const enum PackageManager {
-  NPM,
-  PNPM,
-  BUN,
-  NONE,
 }

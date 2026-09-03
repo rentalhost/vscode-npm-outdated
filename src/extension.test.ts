@@ -1,37 +1,74 @@
+import type { RequestOptions } from "@rheactor/rheactor-core";
 import { vi } from "vitest";
 import { DiagnosticSeverity } from "vscode";
 
 import { COMMAND_INSTALL, COMMAND_INSTALL_REQUEST } from "#/Command";
+import { MockedModules } from "#/MockedModules";
+import type { ExecCallback } from "#/MockedModules";
 import { PackageManager } from "#/PackageManager";
 import { vscodeSimulator } from "#/TestUtils";
 import { icons } from "#/Theme";
 
-vi.mock("node:child_process", async () => ({
-  __esModule: true,
-  ...(await vi.importActual("node:child_process")),
-}));
+vi.mock(import("node:child_process"), async (importOriginal) => {
+  const actual = await importOriginal();
 
-vi.mock("node:fs/promises", async () => ({
-  __esModule: true,
-  ...(await vi.importActual("node:fs/promises")),
-}));
+  return {
+    ...actual,
+    exec: (
+      command: string,
+      options: ExecCallback | undefined,
+      callback?: ExecCallback,
+    ): unknown => {
+      const behavior = MockedModules.childProcessExec;
 
-vi.mock("#/Utils", () => ({
-  __esModule: true,
+      return behavior === undefined
+        ? actual.exec(command, options as never, callback as never)
+        : behavior(command, options, callback);
+    },
+  } as unknown as typeof actual;
+});
 
-  lazyCallback: <T extends () => void>(callback: T): T => callback,
+vi.mock(import("node:fs/promises"), async (importOriginal) => {
+  const actual = await importOriginal();
 
-  promiseLimit:
-    () =>
-    (callback: () => unknown): unknown =>
-      callback(),
+  return {
+    ...actual,
+    access: async (file: string): Promise<void> =>
+      MockedModules.fsPromisesAccess?.(file) ?? actual.access(file),
+  } as unknown as typeof actual;
+});
 
-  waitUntil: (callback: () => void): true => {
-    callback();
+vi.mock(import("#/Utils"), async (importOriginal) => {
+  const actual = await importOriginal();
 
-    return true;
-  },
-}));
+  return {
+    ...actual,
+    cacheEnabled: (): boolean => MockedModules.utilsCacheEnabled?.() ?? actual.cacheEnabled(),
+    lazyCallback:
+      <T extends (...args: never[]) => unknown>(
+        callback: T,
+      ): ((...args: Parameters<T>) => Promise<void>) =>
+      async (...args: Parameters<T>): Promise<void> => {
+        await callback(...args);
+      },
+    promiseLimit:
+      () =>
+      <T>(callback: () => T): T =>
+        callback(),
+    requestSafe: async <T>(options: RequestOptions): Promise<T | undefined> => {
+      const behavior = MockedModules.utilsRequestSafe;
+
+      if (behavior === undefined) {
+        return await actual.requestSafe<T>(options);
+      }
+
+      return await behavior(options);
+    },
+    waitUntil: async (callback: () => unknown): Promise<void> => {
+      await callback();
+    },
+  };
+});
 
 describe("package diagnostics", () => {
   it("initialization without a package.json", async () => {
@@ -74,10 +111,10 @@ describe("package diagnostics", () => {
       selectFirsts: 1,
     });
 
-    expect(diagnostics[0]?.message).toContain("run your package manager");
-    expect(diagnostics[0]?.severity).toBe(DiagnosticSeverity.Information);
-    expect(decorations[0]).toContain("Now run your package manager install command.");
-    expect(actions[0]?.title).toBe("Install package");
+    expect(diagnostics.at(0)?.message).toContain("run your package manager");
+    expect(diagnostics.at(0)?.severity).toBe(DiagnosticSeverity.Information);
+    expect(decorations.at(0)).toContain("Now run your package manager install command.");
+    expect(actions.at(0)?.title).toBe("Install package");
     expect(actions).toHaveLength(1);
   });
 
@@ -90,9 +127,9 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("1.0.1");
-    expect(decorations[0]).toContain("(already installed, just formalization)");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
+    expect(decorations.at(0)).toContain("(already installed, just formalization)");
   });
 
   it("valid dependency, newer version available", async () => {
@@ -104,8 +141,8 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(decorations[0]).toContain("Update available:");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 
   it("valid dependency, newer version available, avoid major dump", async () => {
@@ -117,9 +154,9 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1", "2.0.0"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("1.0.1");
-    expect(decorations[0]).toContain("Update available:");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 
   it("valid dependency, newer version available, suggesting major dump", async () => {
@@ -131,9 +168,9 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1", "2.0.0"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("2.0.0");
-    expect(decorations[0]).toContain("(attention: major update!)");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("2.0.0");
+    expect(decorations.at(0)).toContain("(attention: major update!)");
   });
 
   it("valid dependency, newer version available, major dump protection disabled", async () => {
@@ -146,32 +183,34 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1", "2.0.0"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("2.0.0");
-    expect(decorations[0]).toContain("(attention: major update!)");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("2.0.0");
+    expect(decorations.at(0)).toContain("(attention: major update!)");
   });
 
   it("valid dependency, newer version available (using cache)", async () => {
     expect.assertions(4);
 
-    const { decorations: decorations1, diagnostics: diagnostics1 } = await vscodeSimulator({
-      packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
-      packagesInstalled: { "npm-outdated": "1.0.0" },
-      packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
-    });
+    const { decorations: decorationsUncached, diagnostics: diagnosticsUncached } =
+      await vscodeSimulator({
+        packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
+        packagesInstalled: { "npm-outdated": "1.0.0" },
+        packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
+      });
 
-    expect(diagnostics1[0]?.message).toContain("Newer version");
-    expect(decorations1[0]).toContain("Update available:");
+    expect(diagnosticsUncached.at(0)?.message).toContain("Newer version");
+    expect(decorationsUncached.at(0)).toContain("Update available:");
 
-    const { decorations: decorations2, diagnostics: diagnostics2 } = await vscodeSimulator({
-      cacheEnabled: true,
-      packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
-      packagesInstalled: { "npm-outdated": "1.0.0" },
-      packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
-    });
+    const { decorations: decorationsCached, diagnostics: diagnosticsCached } =
+      await vscodeSimulator({
+        cacheEnabled: true,
+        packageJson: { dependencies: { "npm-outdated": "^1.0.0" } },
+        packagesInstalled: { "npm-outdated": "1.0.0" },
+        packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
+      });
 
-    expect(diagnostics2[0]?.message).toContain("Newer version");
-    expect(decorations2[0]).toContain("Update available:");
+    expect(diagnosticsCached.at(0)?.message).toContain("Newer version");
+    expect(decorationsCached.at(0)).toContain("Update available:");
   });
 
   it("valid dev dependency, newer version available", async () => {
@@ -183,9 +222,9 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("1.0.1");
-    expect(decorations[0]).toContain("Update available:");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 
   it("valid peer dependency, newer version available", async () => {
@@ -197,9 +236,9 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("1.0.1");
-    expect(decorations[0]).toContain("Update available:");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 
   it("valid optional dependency, newer version available", async () => {
@@ -211,9 +250,9 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("1.0.1");
-    expect(decorations[0]).toContain("Update available:");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 
   it("valid dependency, package version not available", async () => {
@@ -224,8 +263,8 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("not available");
-    expect(decorations[0]).toContain("(install pending)");
+    expect(diagnostics.at(0)?.message).toContain("not available");
+    expect(decorations.at(0)).toContain("(install pending)");
   });
 
   it("valid dependency, latest pre-release", async () => {
@@ -237,8 +276,8 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1-alpha"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Pre-release version");
-    expect(decorations[0]).toContain(icons.checked);
+    expect(diagnostics.at(0)?.message).toContain("Pre-release version");
+    expect(decorations.at(0)).toContain(icons.checked);
   });
 
   it("valid dependency, newer pre-release available", async () => {
@@ -252,8 +291,8 @@ describe("package diagnostics", () => {
       },
     });
 
-    expect(diagnostics[0]?.message).toContain("1.0.2-alpha");
-    expect(decorations[0]).toContain("<pre-release>");
+    expect(diagnostics.at(0)?.message).toContain("1.0.2-alpha");
+    expect(decorations.at(0)).toContain("<pre-release>");
   });
 
   it("valid dependency, newer stable-after pre-release available", async () => {
@@ -267,9 +306,9 @@ describe("package diagnostics", () => {
       },
     });
 
-    expect(diagnostics[0]?.message).toContain("1.0.1");
-    expect(decorations[0]).toContain("Update available:");
-    expect(decorations[0]).not.toContain("(attention: major update!)");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
+    expect(decorations.at(0)).toContain("Update available:");
+    expect(decorations.at(0)).not.toContain("(attention: major update!)");
   });
 
   it("valid dependency, upgrading to major pre-release", async () => {
@@ -283,9 +322,9 @@ describe("package diagnostics", () => {
       },
     });
 
-    expect(decorations[0]).toContain("Update available:");
-    expect(decorations[0]).toContain("2.0.0");
-    expect(decorations[0]).toContain("(attention: major update!)");
+    expect(decorations.at(0)).toContain("Update available:");
+    expect(decorations.at(0)).toContain("2.0.0");
+    expect(decorations.at(0)).toContain("(attention: major update!)");
   });
 
   it("valid dependency, latest available version", async () => {
@@ -298,7 +337,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([icons.checked]);
+    expect(decorations.at(0)).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, with partial version", async () => {
@@ -311,7 +350,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([icons.checked]);
+    expect(decorations.at(0)).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, suggests minor or greater only", async () => {
@@ -325,7 +364,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([icons.checked]);
+    expect(decorations.at(0)).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, but cannot get latest version (exception case)", async () => {
@@ -337,7 +376,7 @@ describe("package diagnostics", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toStrictEqual([icons.checked]);
+    expect(decorations.at(0)).toStrictEqual([icons.checked]);
   });
 
   it("valid dependency, no diagnostic", async () => {
@@ -362,10 +401,10 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toBe(
+    expect(diagnostics.at(0)?.message).toBe(
       'Ready-to-install package "npm-outdated" at version 1.0.1. Just run your package manager install command.',
     );
-    expect(decorations[0]).toContain("Now run your package manager install command.");
+    expect(decorations.at(0)).toContain("Now run your package manager install command.");
   });
 
   it("valid dependency, with major already installed must not show 'major' tooltip", async () => {
@@ -377,8 +416,8 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1", "2.0.0"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("available: 1.0.1");
-    expect(decorations[0]).not.toContain("(attention: major update!)");
+    expect(diagnostics.at(0)?.message).toContain("available: 1.0.1");
+    expect(decorations.at(0)).not.toContain("(attention: major update!)");
   });
 
   it("dependency name is invalid", async () => {
@@ -410,7 +449,7 @@ describe("package diagnostics", () => {
       packageJson: { dependencies: { "npm-outdated": "^a.b.c" } },
     });
 
-    expect(diagnostics[0]?.message).toContain("Invalid package version");
+    expect(diagnostics.at(0)?.message).toContain("Invalid package version");
     expect(decorations).toStrictEqual([]);
   });
 
@@ -422,7 +461,7 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0"] },
     });
 
-    expect(decorations[0]).toContain("(install pending)");
+    expect(decorations.at(0)).toContain("(install pending)");
   });
 
   it("decorations simple", async () => {
@@ -435,7 +474,7 @@ describe("package diagnostics", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(decorations[0]).toContain(`${icons.updatable} Update available: 1.0.1`);
+    expect(decorations.at(0)).toContain(`${icons.updatable} Update available: 1.0.1`);
   });
 
   it("decorations disabled", async () => {
@@ -460,8 +499,8 @@ describe("package diagnostics", () => {
       packagesRepository: { "@private/npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(diagnostics[0]?.message).toContain("1.0.1");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(diagnostics.at(0)?.message).toContain("1.0.1");
   });
 
   it("package dependes on auth, so npm view will be used (not found)", async () => {
@@ -525,8 +564,8 @@ describe("code actions", () => {
       selectFirsts: 2,
     });
 
-    expect(actions[0]?.title).toBe('Update "npm-outdated" to 1.0.1');
-    expect(actions[1]?.title).toBe("Install package");
+    expect(actions.at(0)?.title).toBe('Update "npm-outdated" to 1.0.1');
+    expect(actions.at(1)?.title).toBe("Install package");
     expect(actions).toHaveLength(2);
   });
 
@@ -551,7 +590,7 @@ describe("code actions", () => {
       selectFirsts: 2,
     });
 
-    expect(actions[0]?.title).toBe("Install packages");
+    expect(actions.at(0)?.title).toBe("Install packages");
     expect(actions).toHaveLength(1);
   });
 
@@ -565,7 +604,7 @@ describe("code actions", () => {
       selectFirsts: 1,
     });
 
-    expect(actions[0]?.title).toBe('Update "npm-outdated" to 1.0.1');
+    expect(actions.at(0)?.title).toBe('Update "npm-outdated" to 1.0.1');
     expect(actions).toHaveLength(1);
   });
 
@@ -590,8 +629,8 @@ describe("code actions", () => {
       selectFirsts: 1,
     });
 
-    expect(actions[0]?.title).toBe('Update "@types/jest" to 1.0.1');
-    expect(actions[1]?.title).toBe("Update all 2 packages");
+    expect(actions.at(0)?.title).toBe('Update "@types/jest" to 1.0.1');
+    expect(actions.at(1)?.title).toBe("Update all 2 packages");
     expect(actions).toHaveLength(2);
   });
 
@@ -616,8 +655,8 @@ describe("code actions", () => {
       selectFirsts: 1,
     });
 
-    expect(actions[0]?.title).toBe('Update "@types/jest" to 2.0.0 (major)');
-    expect(actions[1]?.title).toBe("Update all 2 packages (major)");
+    expect(actions.at(0)?.title).toBe('Update "@types/jest" to 2.0.0 (major)');
+    expect(actions.at(1)?.title).toBe("Update all 2 packages (major)");
     expect(actions).toHaveLength(2);
   });
 
@@ -645,8 +684,8 @@ describe("code actions", () => {
       selectFirsts: 1,
     });
 
-    expect(actions[0]?.title).toBe('Update "@types/jest" to 2.0.0');
-    expect(actions[1]?.title).toBe("Update all 2 packages");
+    expect(actions.at(0)?.title).toBe('Update "@types/jest" to 2.0.0');
+    expect(actions.at(1)?.title).toBe("Update all 2 packages");
     expect(actions).toHaveLength(2);
   });
 
@@ -674,8 +713,8 @@ describe("code actions", () => {
       selectFirsts: 3,
     });
 
-    expect(actions[0]?.title).toBe("Update 2 selected packages");
-    expect(actions[1]?.title).toBe("Install package");
+    expect(actions.at(0)?.title).toBe("Update 2 selected packages");
+    expect(actions.at(1)?.title).toBe("Install package");
     expect(actions).toHaveLength(2);
   });
 
@@ -700,7 +739,7 @@ describe("code actions", () => {
       selectFirsts: 2,
     });
 
-    expect(actions[0]?.title).toBe('Update "npm-outdated" to 1.0.1');
+    expect(actions.at(0)?.title).toBe('Update "npm-outdated" to 1.0.1');
     expect(actions).toHaveLength(1);
   });
 
@@ -728,7 +767,7 @@ describe("code actions", () => {
       selectFirsts: 2,
     });
 
-    expect(actions[0]?.title).toBe("Update 2 selected packages");
+    expect(actions.at(0)?.title).toBe("Update 2 selected packages");
     expect(actions).toHaveLength(1);
   });
 
@@ -753,7 +792,7 @@ describe("code actions", () => {
       selectFirsts: 2,
     });
 
-    expect(actions[0]?.title).toBe("Update 2 selected packages (major)");
+    expect(actions.at(0)?.title).toBe("Update 2 selected packages (major)");
     expect(actions).toHaveLength(1);
   });
 });
@@ -767,7 +806,7 @@ describe("commands", () => {
       packagesInstalled: { "npm-outdated": "1.0.0" },
       packagesRepository: { "npm-outdated": ["1.0.0", "2.0.0"] },
       runAction: {
-        args: [{ save: vi.fn(), uri: { fsPath: "./test" } }],
+        args: [{ save: vi.fn<() => undefined>(), uri: { fsPath: "./test" } }],
         name: COMMAND_INSTALL_REQUEST,
       },
       selectFirsts: 1,
@@ -818,9 +857,11 @@ describe("code coverage", () => {
 
     const { decorations, diagnostics, document, subscriptions } = await vscodeSimulator();
 
-    subscriptions.find((subscription) => subscription[0] === "onDidChangeActiveTextEditor")?.[1]({
-      document,
-    });
+    const editorChangeHandler = subscriptions
+      .find(([eventName]) => eventName === "onDidChangeActiveTextEditor")
+      ?.at(1) as ((...args: unknown[]) => void) | undefined;
+
+    editorChangeHandler?.({ document });
 
     expect(diagnostics).toHaveLength(0);
     expect(decorations).toStrictEqual([]);
@@ -842,9 +883,11 @@ describe("code coverage", () => {
 
     const { decorations, diagnostics, subscriptions } = await vscodeSimulator();
 
-    subscriptions.find((subscription) => subscription[0] === "onDidChange")?.[1]({
-      fsPath: "/repo/package.json",
-    });
+    const lockerChangeHandler = subscriptions
+      .find(([eventName]) => eventName === "onDidChange")
+      ?.at(1) as ((...args: unknown[]) => void) | undefined;
+
+    lockerChangeHandler?.({ fsPath: "/repo/package.json" });
 
     expect(diagnostics).toHaveLength(0);
     expect(decorations).toStrictEqual([]);
@@ -857,9 +900,11 @@ describe("code coverage", () => {
       packageJson: { dependencies: { "npm-outdated": "^a.b.c" } },
     });
 
-    subscriptions.find((subscription) => subscription[0] === "onDidCloseTextDocument")?.[1](
-      document,
-    );
+    const closeDocumentHandler = subscriptions
+      .find(([eventName]) => eventName === "onDidCloseTextDocument")
+      ?.at(1) as ((...args: unknown[]) => void) | undefined;
+
+    closeDocumentHandler?.(document);
 
     expect(diagnostics).toHaveLength(1);
     expect(decorations).toStrictEqual([]);
@@ -876,7 +921,7 @@ describe("code coverage", () => {
     });
 
     expect(diagnostics).toHaveLength(1);
-    expect(decorations[0]).toContain("Update available:");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 });
 
@@ -908,9 +953,9 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(2);
-    expect(diagnostics[1]?.message).toContain("Security advisory:");
-    expect(decorations[0]).toHaveLength(1);
-    expect(decorations[1]).toContain("Security advisory (HIGH/5.6):");
+    expect(diagnostics.at(1)?.message).toContain("Security advisory:");
+    expect(decorations.at(0)).toHaveLength(1);
+    expect(decorations.at(1)).toContain("Security advisory (HIGH/5.6):");
   });
 
   it("needs downgrade", async () => {
@@ -939,9 +984,9 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.message).toContain("downgrade");
-    expect(decorations[0]).toHaveLength(1);
-    expect(decorations[1]).toContain("Security advisory (HIGH/5.6):");
+    expect(diagnostics.at(0)?.message).toContain("downgrade");
+    expect(decorations.at(0)).toHaveLength(1);
+    expect(decorations.at(1)).toContain("Security advisory (HIGH/5.6):");
   });
 
   it("ignore directory-versions", async () => {
@@ -1021,7 +1066,7 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toContain(icons.checked);
+    expect(decorations.at(0)).toContain(icons.checked);
   });
 
   it("detect installed modules: pnpm", async () => {
@@ -1035,7 +1080,7 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toContain(icons.checked);
+    expect(decorations.at(0)).toContain(icons.checked);
   });
 
   it("detect installed modules: bun", async () => {
@@ -1049,7 +1094,7 @@ describe("security advisories", () => {
     });
 
     expect(diagnostics).toHaveLength(0);
-    expect(decorations[0]).toContain(icons.checked);
+    expect(decorations.at(0)).toContain(icons.checked);
   });
 
   it("detect installed modules: bun (scoped package)", async () => {
@@ -1062,8 +1107,8 @@ describe("security advisories", () => {
       packagesRepository: { "@types/jest": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(decorations[0]).toContain("(already installed, just formalization)");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(decorations.at(0)).toContain("(already installed, just formalization)");
   });
 
   it("valid dependency, newer version available (pnpm issue #7514)", async () => {
@@ -1081,7 +1126,7 @@ describe("security advisories", () => {
       packagesRepository: { "npm-outdated": ["1.0.0", "1.0.1"] },
     });
 
-    expect(diagnostics[0]?.message).toContain("Newer version");
-    expect(decorations[0]).toContain("Update available:");
+    expect(diagnostics.at(0)?.message).toContain("Newer version");
+    expect(decorations.at(0)).toContain("Update available:");
   });
 });

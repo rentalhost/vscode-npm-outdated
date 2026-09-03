@@ -5,15 +5,15 @@ import type { Range, TextDocument } from "vscode";
 import { getPackagesInstalled, getPackageVersions } from "#/PackageManager";
 import { getLevel, hasMajorUpdateProtection } from "#/Settings";
 
-const PACKAGE_NAME_REGEXP = /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/;
+const PACKAGE_NAME_REGEXP = /^(?:@[\d\-a-z][\d\-._a-z]*\/)?[\d\-a-z][\d\-._a-z]*$/v;
 
-const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/;
+const PACKAGE_VERSION_COMPLEX_REGEXP = /\s|\|\|/v;
 
-const PACKAGE_VERSION_PATH_REGEXP = /^(?:\.\.?|~)?\//;
+const PACKAGE_VERSION_PATH_REGEXP = /^(?:\.\.?|~)?\//v;
 
-const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/;
+const PACKAGE_VERSION_PROTOCOL_REGEX = /^[\w+]+:/v;
 
-const PACKAGE_VERSION_GITHUB_REGEX = /^[\da-z][\w-]*[\da-z]\//i;
+const PACKAGE_VERSION_GITHUB_REGEX = /^[\da-z][\w\-]*[\da-z]\//iv;
 
 const PACKAGE_DIFF_LEVELS: Record<ReleaseType, number> = {
   major: 3,
@@ -88,11 +88,11 @@ export class PackageInfo {
     const versionLatest = await this.getVersionLatest();
     const versionInstalled = await this.getVersionInstalled();
 
-    return Boolean(
+    return (
       versionLatest !== null &&
       versionInstalled !== undefined &&
       diff(versionLatest, versionInstalled) === "major" &&
-      gte(versionLatest, versionInstalled),
+      gte(versionLatest, versionInstalled)
     );
   }
 
@@ -151,7 +151,7 @@ export class PackageInfo {
   // Eg.: semver.clean("^13.0.7-canary.3") => null
   // Expected: "13.0.7-canary.3"
   public getVersionClear(): string {
-    return this.version.replace(/^\D+/, "");
+    return this.version.replace(/^\D+/v, "");
   }
 
   // Normalizes the package version, through the informed range.

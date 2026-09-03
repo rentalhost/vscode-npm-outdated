@@ -37,39 +37,39 @@ export type DocumentsPackagesInterface = Record<string, PackageInfo>;
 export async function getDocumentPackages(
   document: TextDocument,
 ): Promise<DocumentsPackagesInterface> {
-  return new Promise((resolve) => {
-    void waitUntil(async () => {
-      const symbols: DocumentSymbol[] | undefined = await commands.executeCommand(
-        "vscode.executeDocumentSymbolProvider",
-        document.uri,
-      );
+  let documentsPackages: DocumentsPackagesInterface | undefined = undefined;
 
-      if (symbols !== undefined) {
-        resolve(
-          Object.fromEntries(
-            [
-              ...mapDependencyRange(
-                document,
-                symbols.find((symbol) => symbol.name === "dependencies"),
-              ),
-              ...mapDependencyRange(
-                document,
-                symbols.find((symbol) => symbol.name === "devDependencies"),
-              ),
-              ...mapDependencyRange(
-                document,
-                symbols.find((symbol) => symbol.name === "peerDependencies"),
-              ),
-              ...mapDependencyRange(
-                document,
-                symbols.find((symbol) => symbol.name === "optionalDependencies"),
-              ),
-            ].map((documentPackage) => [documentPackage.name, documentPackage]),
+  await waitUntil(async () => {
+    const symbols: DocumentSymbol[] | undefined = await commands.executeCommand(
+      "vscode.executeDocumentSymbolProvider",
+      document.uri,
+    );
+
+    if (symbols !== undefined) {
+      documentsPackages = Object.fromEntries(
+        [
+          ...mapDependencyRange(
+            document,
+            symbols.find((symbol) => symbol.name === "dependencies"),
           ),
-        );
-      }
+          ...mapDependencyRange(
+            document,
+            symbols.find((symbol) => symbol.name === "devDependencies"),
+          ),
+          ...mapDependencyRange(
+            document,
+            symbols.find((symbol) => symbol.name === "peerDependencies"),
+          ),
+          ...mapDependencyRange(
+            document,
+            symbols.find((symbol) => symbol.name === "optionalDependencies"),
+          ),
+        ].map((documentPackage) => [documentPackage.name, documentPackage]),
+      );
+    }
 
-      return symbols !== undefined;
-    }, 33);
-  });
+    return symbols !== undefined;
+  }, 33);
+
+  return (documentsPackages as DocumentsPackagesInterface | undefined) ?? {};
 }

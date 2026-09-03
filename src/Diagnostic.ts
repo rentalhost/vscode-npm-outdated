@@ -1,7 +1,14 @@
 import { dirname, sep } from "node:path";
 
 import { intersects, maxSatisfying, minSatisfying, prerelease, satisfies } from "semver";
-import { Diagnostic, DiagnosticSeverity, l10n, Uri, window, workspace } from "vscode";
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+  l10n as localization,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import type {
   DiagnosticCollection,
   ExtensionContext,
@@ -32,6 +39,8 @@ import {
 } from "#/Settings";
 import { icons } from "#/Theme";
 import { promiseLimit } from "#/Utils";
+
+const { t } = localization;
 
 function isPackageJsonDocument(document: TextDocument): boolean {
   return document.fileName.endsWith(`${sep}package.json`);
@@ -66,7 +75,7 @@ async function detectAdvisoryDiagnostics(
 
     const advisoryMessages = [
       icons.advisory,
-      l10n.t(
+      t(
         "Security advisory: this package version has a known flaw of level {0}/{1}.",
         packageAdvisory.severity.toUpperCase(),
         packageAdvisory.cvss.score.toFixed(1),
@@ -92,20 +101,18 @@ async function detectAdvisoryDiagnostics(
     const versionFutureNotAffected = minSatisfying(versionsNotAffected, `>${versionNormalized}`);
 
     if (versionFutureNotAffected === null) {
-      advisoryMessages.push(l10n.t("No fix available yet."));
+      advisoryMessages.push(t("No fix available yet."));
 
       // If there is no future version available then it suggests a downgrade.
       // Gets the largest available version in which a flaw does not exist.
       const versionPastNotAffected = maxSatisfying(versionsNotAffected, `<${versionNormalized}`);
 
       if (versionPastNotAffected !== null) {
-        advisoryMessages.push(
-          l10n.t("If possible, downgrade to version {0}.", versionPastNotAffected),
-        );
+        advisoryMessages.push(t("If possible, downgrade to version {0}.", versionPastNotAffected));
       }
     } else {
       advisoryMessages.push(
-        l10n.t("Please upgrade to version {0} or higher.", versionFutureNotAffected),
+        t("Please upgrade to version {0} or higher.", versionFutureNotAffected),
       );
     }
 
@@ -120,7 +127,7 @@ async function detectAdvisoryDiagnostics(
 
     diagnostic.code = {
       target: Uri.parse(packageAdvisory.url),
-      value: l10n.t("Details"),
+      value: t("Details"),
     };
 
     documentDiagnostics.push(diagnostic);
@@ -196,8 +203,8 @@ export function diagnosticSubscribe(
 }
 
 export enum DiagnosticType {
-  GENERAL,
-  READY_TO_INSTALL,
+  GENERAL = 0,
+  READY_TO_INSTALL = 1,
 }
 
 export class PackageRelatedDiagnostic extends Diagnostic {
@@ -228,7 +235,7 @@ export async function getPackageDiagnostic(
   if (!packageInfo.isVersionValidRange()) {
     return new Diagnostic(
       packageInfo.versionRange,
-      l10n.t("Invalid package version."),
+      t("Invalid package version."),
       DiagnosticSeverity.Error,
     );
   }
@@ -244,7 +251,7 @@ export async function getPackageDiagnostic(
   if (!(await packageInfo.isVersionReleased())) {
     return new PackageRelatedDiagnostic(
       packageInfo.versionRange,
-      l10n.t("Package version not available."),
+      t("Package version not available."),
       DiagnosticSeverity.Error,
       document,
       packageInfo,
@@ -257,7 +264,7 @@ export async function getPackageDiagnostic(
     if (await packageInfo.requiresInstallCommand()) {
       return new PackageRelatedDiagnostic(
         packageInfo.versionRange,
-        l10n.t(
+        t(
           'Ready-to-install package "{0}" at version {1}. Just run your package manager install command.',
           packageInfo.name,
           versionLatest,
@@ -275,7 +282,7 @@ export async function getPackageDiagnostic(
   if (!(await packageInfo.isVersionMaxed())) {
     return new PackageRelatedDiagnostic(
       packageInfo.versionRange,
-      l10n.t('Newer version of "{0}" is available: {1}.', packageInfo.name, versionLatest),
+      t('Newer version of "{0}" is available: {1}.', packageInfo.name, versionLatest),
       DiagnosticSeverity.Warning,
       document,
       packageInfo,
@@ -287,7 +294,7 @@ export async function getPackageDiagnostic(
   if (packageInfo.isVersionPrerelease()) {
     return new Diagnostic(
       packageInfo.versionRange,
-      l10n.t('Pre-release version of "{0}".', packageInfo.name),
+      t('Pre-release version of "{0}".', packageInfo.name),
       DiagnosticSeverity.Information,
     );
   }

@@ -2,51 +2,62 @@ import { vi } from "vitest";
 
 let rangeSelectFirsts: number | undefined;
 
-export function __setRangeSelectFirsts(value: number | undefined): void {
+export function setRangeSelectFirsts(value: number | undefined): void {
   rangeSelectFirsts = value;
 }
 
-export class Range {
-  public start: { character: number; line: number };
+interface RangeInstance {
+  end: { character: number; line: number };
+  start: { character: number; line: number };
 
-  public end: { character: number; line: number };
-
-  public constructor(
-    startLine: number,
-    startCharacter: number,
-    endLine: number,
-    endCharacter: number,
-  ) {
-    this.start = { character: startCharacter, line: startLine };
-    this.end = { character: endCharacter, line: endLine };
-  }
-
-  public intersection(): Range | undefined {
-    return rangeSelectFirsts !== undefined && this.end.line + 1 <= rangeSelectFirsts
-      ? this
-      : undefined;
-  }
+  intersection(): RangeInstance | undefined;
 }
 
-export const ExtensionContext: unknown = vi.fn(() => ({
-  subscriptions: vi.fn(() => ({
-    push: vi.fn(),
+export function Range(
+  startLine: number,
+  startCharacter: number,
+  endLine: number,
+  endCharacter: number,
+): RangeInstance {
+  const range: RangeInstance = {
+    start: { character: startCharacter, line: startLine },
+    end: { character: endCharacter, line: endLine },
+
+    intersection: () =>
+      rangeSelectFirsts !== undefined && range.end.line + 1 <= rangeSelectFirsts
+        ? range
+        : undefined,
+  };
+
+  return range;
+}
+
+export const ExtensionContext: unknown = vi.fn<() => unknown>(() => ({
+  subscriptions: vi.fn<() => unknown>(() => ({
+    push: vi.fn<() => undefined>(),
   })),
 }));
 
-export class Diagnostic {
-  public constructor(
-    public range: typeof Range,
-    public message: string,
-    public severity?: DiagnosticSeverity,
-  ) {}
+interface DiagnosticInstance {
+  message: string;
+  range: unknown;
+  severity?: DiagnosticSeverity;
+}
+
+export function Diagnostic(
+  range: unknown,
+  message: string,
+  severity?: DiagnosticSeverity,
+): DiagnosticInstance {
+  return { message, range, severity };
 }
 
 export enum DiagnosticSeverity {
-  Error,
-  Warning,
-  Information,
-  Hint,
+  // oxlint-disable-next-line eslint/no-shadow
+  Error = 0,
+  Warning = 1,
+  Information = 2,
+  Hint = 3,
 }
 
 export const CodeActionKind = {
@@ -55,8 +66,8 @@ export const CodeActionKind = {
 
 export const commands = {};
 
-export const languages: { registerCodeActionsProvider: unknown } = {
-  registerCodeActionsProvider: vi.fn(),
+export const languages = {
+  registerCodeActionsProvider: vi.fn<() => undefined>(),
 };
 
 export const window = {
@@ -67,19 +78,27 @@ export const Uri = {
   parse: (): undefined => undefined,
 };
 
-export const workspace: unknown = vi.fn();
+export const workspace: unknown = vi.fn<() => undefined>();
 
-export class WorkspaceEdit {
-  public replace(): undefined {
-    return undefined;
-  }
+interface WorkspaceEditInstance {
+  replace(): undefined;
 }
 
-export class CodeAction {
-  public constructor(public title: string) {}
+export function WorkspaceEdit(): WorkspaceEditInstance {
+  return {
+    replace: (): undefined => undefined,
+  };
 }
 
-export const l10n = {
+interface CodeActionInstance {
+  title: string;
+}
+
+export function CodeAction(title: string): CodeActionInstance {
+  return { title };
+}
+
+const localization = {
   t: (message: string, ...args: unknown[]): string => {
     let messageModified = message;
 
@@ -90,3 +109,6 @@ export const l10n = {
     return messageModified;
   },
 };
+
+// oxlint-disable-next-line eslint/id-match
+export { localization as l10n };
