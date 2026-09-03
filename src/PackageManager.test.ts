@@ -27,7 +27,7 @@ vi.mock(import("node:child_process"), async (importOriginal) => {
   // Production code must use the callback stdout string and never rely on
   // the promisified shape.
   Object.assign(execMock, {
-    [promisify.custom]: async () => ({ stderr: "", stdout: "1.0.0\n" }),
+    [promisify.custom]: () => ({ stderr: "", stdout: "1.0.0\n" }),
   });
 
   return {

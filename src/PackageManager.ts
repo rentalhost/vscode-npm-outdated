@@ -22,7 +22,8 @@ interface ExecOptions {
 // carries `stdout`/`stderr`, since commands like `npm ls` print usable JSON
 // even with a non-zero exit code. (`promisify(exec)` cannot be used here: its
 // custom promisify hook resolves with `{ stdout, stderr }`, not a string.)
-function execAsync(command: string, options?: ExecOptions): Promise<string> {
+async function execAsync(command: string, options?: ExecOptions): Promise<string> {
+  // oxlint-disable-next-line promise/avoid-new
   return new Promise((resolve, reject) => {
     exec(
       command,
